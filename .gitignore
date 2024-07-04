@@ -1,3 +1,5 @@
 analysis/
 PyQt5/
-venv_bp
+venv_bp/
+**__pycache__/
+**.txt
