@@ -65,7 +65,7 @@ class ExpenseWindow(QMainWindow, EnterExpense):
     Window that show the fields that have to be filled in to 
     record a new expense.
     """
-    
+
     def __init__(self):
         super().__init__()
         self.db_conn = DB_Conn()
@@ -84,7 +84,8 @@ class ExpenseWindow(QMainWindow, EnterExpense):
             self.description.text(),
             float(self.amount.text())
         )
-        query = "INSERT INTO movements (date, type, category, description, amount) VALUES (%s, %s, %s, %s, %f)"
+
+        query = "INSERT INTO movements (date, type, category, description, amount) VALUES (%s, %s, %s, %s, %s)"
         cursor.execute(query, record)
         conn.commit()
         self.db_conn.end()
