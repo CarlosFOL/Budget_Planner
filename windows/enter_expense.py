@@ -1,7 +1,5 @@
-from datetime import datetime
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtWidgets import QMainWindow, QLabel, QWidget
-import psycopg2
 import sys
 from widgets import ComboBox, Field, InputLine, Button
 

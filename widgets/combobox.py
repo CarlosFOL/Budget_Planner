@@ -12,6 +12,8 @@ class ComboBox(QComboBox):
         self.options = options
         self.position = position
         self._setUp()
+        # To ensure that there is no option selected in the combobox
+        self.setCurrentIndex(-1)
     
     def _setUp(self):
         """
