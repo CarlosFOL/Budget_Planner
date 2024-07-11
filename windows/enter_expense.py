@@ -1,3 +1,5 @@
+from database import DB_conn
+from datetime import datetime
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtWidgets import QMainWindow, QLabel, QWidget
 import sys
@@ -63,6 +65,7 @@ class EnterExpense(object):
                               position=(10, 570),
                               dimensions=(200, 41),
                               mssg="Enviar")
+        self.send_mv.clicked.connect(self._input_movement)
         
         MainWindow.setCentralWidget(self.centralwidget)
 
@@ -78,7 +81,28 @@ class EnterExpense(object):
                                       "Telefonia", "Transporte", "Universidad",
                                       "Ocio", "Gym", "Otros"])
         elif current_type == "Income":
-            self.categories.addItems(["Salario"])
+            self.categories.addItems(["Salario", "Transferencia"])
+
+    def _input_movement(self) -> tuple:
+        """
+        Register a movement into the table Movements
+        """
+        db_conn = DB_conn(dbname="budgetplanner")
+        conn, cursor = db_conn.start()
+        record = (
+            datetime.now().date().strftime("%Y-%m-%d"),
+            self.options_mtype.currentText(),
+            self.categories.currentText(),
+            self.description.text(),
+            float(self.amount.text())
+        )
+        query = "INSERT INTO movements (date, type, category, description, amount) VALUES (%s, %s, %s, %s, %s)"
+        cursor.execute(query, record)
+        conn.commit()
+        db_conn.end()
+        # Remove the content of the fields
+        self.description.clear()
+        self.amount.clear()
 
 if __name__ == "__main__":
     app = QtWidgets.QApplication(sys.argv)
