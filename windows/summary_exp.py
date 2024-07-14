@@ -1,14 +1,16 @@
 from database import DB_conn
 from PyQt5 import QtCore, QtGui, QtWidgets
-from widgets import ComboBox, Field
+from widgets import Button, ComboBox, Field
 import sys
 
 class SummaryExp(object):
     """
+    It divides the expenses I have made during a particular
+    season into categories and shows them in tabular form. 
     """
 
     def setupUi(self, MainWindow):
-        MainWindow.setGeometry(300, 200, 1400, 550)
+        MainWindow.setGeometry(300, 200, 1400, 620)
         self.centralwidget = QtWidgets.QWidget(MainWindow)
         # It tells you what you are seeing in this window
         font = QtGui.QFont()
@@ -19,13 +21,18 @@ class SummaryExp(object):
         self.title.setGeometry(QtCore.QRect(10, 5, 460, 28))
         self.title.setFont(font)
         self.title.setText("See how much you spend over the period")
+        # Back button to the menu
+        self.back_button = Button(cwidget=self.centralwidget, 
+                             position=(10, 60),
+                             dimensions=(50, 50),
+                             mssg="⟵")
         # To choose the season
         self.season_f = Field(cwidget=self.centralwidget,
-                            position=(10, 70),
+                            position=(10, 140),
                             texto="Season")
         self._set_seasons()
         self.table = QtWidgets.QTableView(MainWindow)
-        self.table.setGeometry(50, 200, 1306, 295)
+        self.table.setGeometry(50, 250, 1295, 325)
         MainWindow.setCentralWidget(self.centralwidget)
 
     def _set_seasons(self):
@@ -33,7 +40,7 @@ class SummaryExp(object):
         Get all the seasons and save them into a combobox 
         """
         self.seasons_cb = ComboBox(cwidget=self.centralwidget,
-                                 position=(10, 100))
+                                 position=(10, 180))
         db_conn = DB_conn(dbname="budgetplanner")
         # Start a db connection
         _, cursor = db_conn.start()

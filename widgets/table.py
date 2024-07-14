@@ -1,4 +1,5 @@
-from typing import Any
+import pandas as pd
+from PyQt5.QtWidgets import QHeaderView
 from PyQt5.QtCore import QAbstractTableModel, Qt
 
 
@@ -23,6 +24,8 @@ class Table(QAbstractTableModel):
             if role == Qt.DisplayRole:
                 return str(self.data.iloc[index.row(), index.column()])
     
-    def headerData(self, col, orientation, role):
-        if orientation == Qt.Horizontal and role == Qt.DisplayRole:
-            return self.data.columns[col]
+    def headerData(self, section, orientation, role):
+        if role == Qt.DisplayRole and orientation == Qt.Horizontal:
+            return str(self.data.columns[section])
+        elif role == Qt.DisplayRole and orientation == Qt.Vertical:
+            return str(self.data.index[section])

@@ -2,32 +2,30 @@ from database import DB_conn
 import numpy as np
 import pandas as pd
 from PyQt5 import QtWidgets
-from PyQt5.QtWidgets import QMainWindow, QTableView
+from PyQt5.QtWidgets import QMainWindow
 from widgets import Table
 from windows import EnterExpense, MenuBP, SummaryExp
 import sys
         
-
 
 class MainWindow_BP(QMainWindow, MenuBP):
     """
     Main Window of the Budget Planner GUI
     """
 
-
     def __init__(self):
         super().__init__()
         self.setupUi(self)
-        self.expense_wind = ExpenseWindow()
-        self.summ_wind = SummaryWindow()
+        self.expense_wind = ExpenseWindow(menu=self)
+        self.summ_wind = SummaryWindow(menu=self)
         self.movement.clicked.connect(lambda: self.show_window(wind='E'))
         self.exp_summary.clicked.connect(lambda: self.show_window(wind='S'))
 
-
     def show_window(self, wind: str):
         """
+        It shows a windows according to the option selected
         """
-        self.close()
+        self.hide()
         if wind == 'E':
             self.expense_wind.show()
         elif wind == 'S':
@@ -40,10 +38,18 @@ class ExpenseWindow(QMainWindow, EnterExpense):
     record a new expense.
     """
 
-    def __init__(self):
+    def __init__(self, menu: QMainWindow):
         super().__init__()
+        self.menu = menu
         self.setupUi(self)
+        self.back_button.clicked.connect(self._back_menu)
 
+    def _back_menu(self):
+        """
+        Return to the Budget Planner menu
+        """
+        self.hide()
+        self.menu.show()
 
 
 class SummaryWindow(QMainWindow, SummaryExp):
@@ -52,13 +58,20 @@ class SummaryWindow(QMainWindow, SummaryExp):
     a particular season and showing in a tabular way.
     """
 
-
-    def __init__(self):
+    def __init__(self, menu: QMainWindow):
         super().__init__()
+        self.menu = menu
         self.setupUi(self)
+        self.back_button.clicked.connect(self._back_menu)
         # Signal: An event that occurs and trigger the execution of a slot (function or method)
         self.seasons_cb.currentIndexChanged.connect(self._show_season_expenses)
-
+    
+    def _back_menu(self):
+        """
+        Return to the Budget Planner menu
+        """
+        self.hide()
+        self.menu.show()
 
     def _show_season_expenses(self):
         """
@@ -71,11 +84,9 @@ class SummaryWindow(QMainWindow, SummaryExp):
         self._qualified_records(season, cursor)
         data = self._build_table(season, cursor)
         db_conn.end()
-        # Add the widget
+        # Add the content of the table
         model = Table(data)
-        # table = QTableView(self.centralwidget)
         self.table.setModel(model)
-
 
     def _qualified_records(self, season: int, cursor):
         """
@@ -91,16 +102,15 @@ class SummaryWindow(QMainWindow, SummaryExp):
         """
         cursor.execute(query)
 
-
     def _build_table(self, season: int, cursor) -> pd.DataFrame:
         """
         Build the expenses table of a particular season
         """
-        columns = self._months_distribution(start_year=int(season[:4]))
+        cols = self._months_distribution(start_year=int(season[:4]))
         idx = ["Alojamiento", "Servicios", "Comida", "Telefonia", 
                 "Transporte", "Universidad","Ocio", "Gym", "Otros"]
         df_expenses = pd.DataFrame(index=idx)
-        for year, month in columns:
+        for year, month in cols:
             query = f"""
             SELECT category, SUM(amount)
             FROM exp_table
@@ -128,20 +138,29 @@ class SummaryWindow(QMainWindow, SummaryExp):
                                      right_index=True,
                                      how='outer')
                 break
-        df_expenses.columns = columns
+        df_expenses.columns = cols
         df_expenses.fillna(0, inplace=True)
-        return df_expenses.reset_index()
+        # Add the total amount
+        df_expenses = pd.concat([df_expenses, self._total_amount(df_expenses)], axis=0)
+        return df_expenses
 
-
-    def _months_distribution(self, start_year: int) -> pd.MultiIndex:
+    def _months_distribution(self, start_year: int) -> list:
         """
         Get the months that are part of the season
         """
         dist_sy = pd.MultiIndex.from_product( [[start_year], list(range(7, 13))] )
         dist_fy = pd.MultiIndex.from_product( [[start_year + 1], list(range(1, 7))] )
         dist_months = dist_sy.append(dist_fy)
-        return dist_months
+        return list(dist_months)
 
+    def _total_amount(self, exp_table: pd.DataFrame) -> pd.DataFrame:
+        """
+        Create the record that represents the total amount of
+        expenses for each month of the season.
+        """
+        record = pd.DataFrame(exp_table.sum(axis = 0), 
+                              columns=["Total"]).T
+        return record
 
 
 if __name__ == "__main__":

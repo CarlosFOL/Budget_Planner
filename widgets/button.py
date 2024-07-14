@@ -5,7 +5,8 @@ class Button(QPushButton):
     """
     It represent an action that can be performed in the app 
     """
-    def __init__(self, cwidget: QWidget, position: tuple, dimensions: tuple, mssg: str):
+    def __init__(self, cwidget: QWidget, position: tuple, 
+                 dimensions: tuple, mssg: str = ""):
         super().__init__(cwidget)
         self.position = position
         self.dimensions = dimensions
