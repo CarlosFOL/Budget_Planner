@@ -1,12 +1,9 @@
-from database import DB_conn
-import numpy as np
-import pandas as pd
 from PyQt5 import QtWidgets
 from PyQt5.QtWidgets import QMainWindow
-from widgets import Table
-from windows import EnterExpense, MenuBP, SummaryExp
+from windows import EnterExpense, HoldingType, MenuBP, MoneyDistribution, SummaryExp
 import sys
         
+
 
 class MainWindow_BP(QMainWindow, MenuBP):
     """
@@ -17,8 +14,10 @@ class MainWindow_BP(QMainWindow, MenuBP):
         super().__init__()
         self.setupUi(self)
         self.expense_wind = ExpenseWindow(menu=self)
+        self.money_wind = MoneyDistWindow(menu=self)
         self.summ_wind = SummaryWindow(menu=self)
         self.movement.clicked.connect(lambda: self.show_window(wind='E'))
+        self.money_dist.clicked.connect(lambda: self.show_window(wind='M'))
         self.exp_summary.clicked.connect(lambda: self.show_window(wind='S'))
 
     def show_window(self, wind: str):
@@ -30,9 +29,12 @@ class MainWindow_BP(QMainWindow, MenuBP):
             self.expense_wind.show()
         elif wind == 'S':
             self.summ_wind.show()
+        elif wind == 'M':
+            self.money_wind.show()
 
 
-class ExpenseWindow(QMainWindow, EnterExpense):
+
+class ExpenseWindow(EnterExpense, QMainWindow):
     """
     Window that shows the fields that have to be filled in to 
     record a new expense.
@@ -52,6 +54,48 @@ class ExpenseWindow(QMainWindow, EnterExpense):
         self.menu.show()
 
 
+
+class MoneyDistWindow(MoneyDistribution, QMainWindow):
+    """
+    Window that stores the amount of money that you have
+    in the different holding types that you recorded.  
+    """
+
+    def __init__(self, menu: QMainWindow):
+        super().__init__()
+        self.setupUi(self)
+        self.menu = menu
+        self.htype_wind = HoldingWindow()
+        self.add_htype.clicked.connect(self._show_htype_wind)
+        self.back_button.clicked.connect(self._back_menu)
+    
+    def _show_htype_wind(self):
+        """
+        Display the window that allows you to register
+        a new holding type.
+        """
+        self.htype_wind.show()
+
+
+    def _back_menu(self):
+        """
+        Return to the menu
+        """
+        self.hide()
+        self.menu.show()
+
+
+class HoldingWindow(HoldingType, QMainWindow):
+    """
+    Window designed to add a new holding type
+    """
+
+    def __init__(self):
+        super().__init__()
+        self.setupUi(self)
+
+
+
 class SummaryWindow(QMainWindow, SummaryExp):
     """
     Window responsible of getting the expenses performed during
@@ -68,99 +112,10 @@ class SummaryWindow(QMainWindow, SummaryExp):
     
     def _back_menu(self):
         """
-        Return to the Budget Planner menu
         """
         self.hide()
         self.menu.show()
 
-    def _show_season_expenses(self):
-        """
-        Build the table by getting the qualified records and
-        cast it to QTableView object.
-        """
-        db_conn = DB_conn(dbname="budgetplanner")
-        _, cursor = db_conn.start()
-        season = self.seasons_cb.currentText()
-        self._qualified_records(season, cursor)
-        data = self._build_table(season, cursor)
-        db_conn.end()
-        # Add the content of the table
-        model = Table(data)
-        self.table.setModel(model)
-
-    def _qualified_records(self, season: int, cursor):
-        """
-        Get those movements that belong to the selected season 
-        """
-        query = f"""
-        CREATE TEMPORARY TABLE exp_table AS
-        SELECT date, category, amount
-        FROM movements JOIN (SELECT start, finish 
-                             FROM seasons 
-                             WHERE sid = {season}) AUX 
-                        ON (date BETWEEN start AND finish) AND (type = 'Expense')   
-        """
-        cursor.execute(query)
-
-    def _build_table(self, season: int, cursor) -> pd.DataFrame:
-        """
-        Build the expenses table of a particular season
-        """
-        cols = self._months_distribution(start_year=int(season[:4]))
-        idx = ["Alojamiento", "Servicios", "Comida", "Telefonia", 
-                "Transporte", "Universidad","Ocio", "Gym", "Otros"]
-        df_expenses = pd.DataFrame(index=idx)
-        for year, month in cols:
-            query = f"""
-            SELECT category, SUM(amount)
-            FROM exp_table
-            WHERE EXTRACT(YEAR FROM date) = {year} AND EXTRACT(MONTH FROM date) = {month}
-            GROUP BY category
-            """
-            cursor.execute(query)
-            if not cursor.rowcount == 0:
-                partition = pd.DataFrame(cursor.fetchall()).set_index(0)
-                df_expenses = pd.merge(left=df_expenses, 
-                                     right=partition,
-                                     left_index=True,
-                                     right_index=True,
-                                     how='outer')
-            else:
-                # Each column represent a month and a period is composed by 12 months.
-                # Therefore, we can know in which months we don't have expenses yet.
-                empty_db = pd.DataFrame(
-                    np.zeros( (len(idx), 12 - df_expenses.shape[1]) ),
-                    index = idx
-                    )
-                df_expenses = pd.merge(left=df_expenses,
-                                     right=empty_db,
-                                     left_index=True,
-                                     right_index=True,
-                                     how='outer')
-                break
-        df_expenses.columns = cols
-        df_expenses.fillna(0, inplace=True)
-        # Add the total amount
-        df_expenses = pd.concat([df_expenses, self._total_amount(df_expenses)], axis=0)
-        return df_expenses
-
-    def _months_distribution(self, start_year: int) -> list:
-        """
-        Get the months that are part of the season
-        """
-        dist_sy = pd.MultiIndex.from_product( [[start_year], list(range(7, 13))] )
-        dist_fy = pd.MultiIndex.from_product( [[start_year + 1], list(range(1, 7))] )
-        dist_months = dist_sy.append(dist_fy)
-        return list(dist_months)
-
-    def _total_amount(self, exp_table: pd.DataFrame) -> pd.DataFrame:
-        """
-        Create the record that represents the total amount of
-        expenses for each month of the season.
-        """
-        record = pd.DataFrame(exp_table.sum(axis = 0), 
-                              columns=["Total"]).T
-        return record
 
 
 if __name__ == "__main__":

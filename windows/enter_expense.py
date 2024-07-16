@@ -1,13 +1,15 @@
 from database import DB_conn
 from datetime import datetime
-from PyQt5 import QtCore, QtGui, QtWidgets
-from PyQt5.QtWidgets import QMainWindow, QLabel, QStyle, QWidget
+from PyQt5 import QtWidgets
+from PyQt5.QtWidgets import QMainWindow, QWidget
 import sys
 from widgets import ComboBox, Field, InputLine, Button
 
 
 class EnterExpense(object):
     """
+    Window that displays the fields that you have to fill in in order
+    to register a new movement, either a income or expense. 
     """
     
 
@@ -15,22 +17,19 @@ class EnterExpense(object):
         MainWindow.setGeometry(500, 200, 750, 700)
         self.centralwidget = QWidget(MainWindow)
         # It tells you what you can do on this window
-        font = QtGui.QFont()
-        font.setPointSize(20)
-        font.setBold(True)
-        font.setWeight(75)
-        self.indication = QLabel(self.centralwidget)
-        self.indication.setGeometry(QtCore.QRect(10, 5, 421, 32))
-        self.indication.setFont(font)
-        self.indication.setText("Fill in the fields of the movement")
+        self.indication = Field(cwidget=self.centralwidget, position=(10, 5),
+                                texto="Fill in the fields of the movement",
+                                dimensions=(421, 32), pointsize=20,
+                                bold=True, weight=75)
         # Back button to the menu
         self.back_button = Button(cwidget=self.centralwidget, 
-                             position=(10, 60),
+                             position=(10, 60),                
                              dimensions=(50, 50),
                              mssg="⟵")
         # To select the movement type
         self.mov_type = Field(cwidget=self.centralwidget, 
                               position=(10, 140),
+                              dimensions=(145, 23),
                               texto="Type")
         # Combo box
         self.options_mtype = ComboBox(cwidget=self.centralwidget, 
@@ -41,6 +40,7 @@ class EnterExpense(object):
         # It shows the categories of incomes and expenses that there are.
         self.cat_mov = Field(cwidget=self.centralwidget, 
                               position=(10, 260),
+                              dimensions=(145, 23),
                               texto="Category")
         # Combo box
         self.categories = ComboBox(cwidget=self.centralwidget,
@@ -49,6 +49,7 @@ class EnterExpense(object):
         # The movement description
         self.mov_des = Field(cwidget=self.centralwidget, 
                               position=(10, 380),
+                              dimensions=(145, 23),
                               texto="Description")
         # Space to specify a brief description of the movement
         self.description = InputLine(cwidget=self.centralwidget,
@@ -58,6 +59,7 @@ class EnterExpense(object):
         # Set the amount
         self.amount_mov = Field(cwidget=self.centralwidget, 
                               position=(10, 500),
+                              dimensions=(145, 23),
                               texto="Amount (€)")
         # The amount of the movement
         self.amount = InputLine(cwidget=self.centralwidget,

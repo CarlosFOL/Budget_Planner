@@ -6,10 +6,11 @@ class Button(QPushButton):
     It represent an action that can be performed in the app 
     """
     def __init__(self, cwidget: QWidget, position: tuple, 
-                 dimensions: tuple, mssg: str = ""):
+                 dimensions: tuple, pointsize: int = 15, mssg: str = "", ):
         super().__init__(cwidget)
         self.position = position
         self.dimensions = dimensions
+        self.pointsize = pointsize
         self.mssg = mssg
         self._setUp()
 
@@ -18,7 +19,7 @@ class Button(QPushButton):
         Set the main features of a button
         """
         font = QtGui.QFont()
-        font.setPointSize(15)
+        font.setPointSize(self.pointsize)
         self.setGeometry(*self.position, *self.dimensions)
         self.setFont(font)
         self.setText(self.mssg)

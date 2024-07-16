@@ -7,18 +7,26 @@ class Field(QLabel):
     recording a movement
     """
 
-    def __init__(self, cwidget: QWidget, position: tuple, texto: str):
+    def __init__(self, cwidget: QWidget, position: tuple, texto: str, 
+                 dimensions: tuple, pointsize: int = 15, 
+                 bold: bool = False, weight: int = 20):
         super().__init__(cwidget)
         self.position = position
         self.texto = texto
+        self.dimensions = dimensions
+        self.pointsize = pointsize
+        self.bold = bold
+        self.weight = weight
         self._setUp()
     
     def _setUp(self):
         """
         Set the main features of the field
         """
-        self.setGeometry(*self.position, 145, 23)
+        self.setGeometry(*self.position, *self.dimensions)
         font = QtGui.QFont()
-        font.setPointSize(15)
+        font.setPointSize(self.pointsize)
+        font.setBold(self.bold)
+        font.setWeight(self.weight)
         self.setFont(font)
         self.setText(self.texto)
