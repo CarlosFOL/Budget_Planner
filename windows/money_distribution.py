@@ -1,5 +1,6 @@
 from database import DB_conn
 from datetime import datetime
+from functools import reduce
 from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget
 from widgets import Button, ComboBox, Field, InputLine
 import sys
@@ -37,10 +38,10 @@ class MoneyDistribution(object):
                                dimensions=bsize,
                                pointsize=12,
                                mssg="Remove Holding")
-        self.update_htypes()
+        self._update_htypes()
         MainWindow.setCentralWidget(self.centralwidget)
     
-    def update_htypes(self):
+    def _update_htypes(self):
         """
         It checks if there are htypes that have been added in order
         to show them in this window
@@ -61,12 +62,18 @@ class MoneyDistribution(object):
                 texto = f"{inst} ({htype})"
             elif htype == "Cash":
                 texto = htype
-            self.label = Field(cwidget=self.centralwidget,
-                               position=(10, ycoord),
-                               dimensions=(300, 50),
-                               texto=f"{texto} --> {float(amount)} €")
+            Field(cwidget=self.centralwidget,
+                  position=(10, ycoord),
+                  dimensions=(300, 50),
+                  texto=f"{texto} --> {float(amount)} €")
             ycoord += 80
-        self.add_htype.move(10, ycoord), self.rm_htype.move(200, ycoord)                
+        Field(cwidget=self.centralwidget, 
+              position=(10, ycoord),
+              dimensions=(300, 50),
+              # The last element represent the amount of money
+              texto=f"TOTAL: {reduce(lambda a1, a2: a1 + a2, 
+                                     [r[-1] for r in records])} €")
+        self.add_htype.move(10, ycoord + 80), self.rm_htype.move(200, ycoord + 80)                
         
 
 
@@ -105,7 +112,7 @@ class HoldingType(object):
         # Hide them
         self._toggle_visibility(self.institution, self.input_inst, 
                                 self.amount, self.input_amount, 
-                                self.save_htype, hide =True)
+                                self.save_htype, hide=True)
         # Show the corresponding fields
         self.htype_cb.currentIndexChanged.connect(self._show_more_fields)
         MainWindow.setCentralWidget(self.centralwidget)
@@ -154,7 +161,8 @@ class HoldingType(object):
             self.input_amount.text(),
             datetime.now().date().strftime("%Y-%m-%d")
                   )
-        query = "INSERT INTO financial_holdings (holding_type, institution, amount, last_updated) VALUES (%s, %s, %s, %s)"
+        query = "INSERT INTO financial_holdings (holding_type, institution, amount, last_updated) \
+                 VALUES (%s, %s, %s, %s)"
         cursor.execute(query, record)
         conn.commit()
         db_conn.end()

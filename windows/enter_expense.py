@@ -67,13 +67,14 @@ class EnterExpense(object):
                                 # Regular expression: It starts with a number of 1-4 digits 
                                 # and followed by decimal part of 1-2 digits.
                                 regex=r'^\d{1,4}(\.\d{0,2})?$')
+        self._display_htypes_cb()
 
         # Send the movement to the database
         self.send_mv = Button(cwidget=self.centralwidget,
                               position=(10, 615),
                               dimensions=(200, 41),
                               mssg="Enviar")
-        self.send_mv.clicked.connect(self._input_movement)
+        self.send_mv.clicked.connect(self._insert_movement)
         
         MainWindow.setCentralWidget(self.centralwidget)
 
@@ -93,9 +94,44 @@ class EnterExpense(object):
             self.categories.addItems(["Salario", "Transferencia"])
 
 
-    def _input_movement(self) -> tuple:
+    def _display_htypes_cb(self):
         """
-        Register a movement into the table Movements
+        Display a combobox with the registered holding types in
+        the financial holding table.
+        """
+        db_conn = DB_conn(dbname="budgetplanner")
+        _, cursor = db_conn.start()
+        # Get the recorded htypes
+        cursor.execute("SELECT holding_type, institution \
+                        FROM financial_holdings")
+        outcome = cursor.fetchall()
+        db_conn.end()
+        self.htype_cb = ComboBox(cwidget=self.centralwidget, 
+                                 position=(240, 540),
+                                # Set comprehension to avoid duplicates
+                                 options={record[0] for record in outcome})
+        self.inst_cb = ComboBox(cwidget=self.centralwidget, 
+                                position=(420, 540),
+                                options=[inst for htype, inst in outcome if htype == "Card"])
+        self.inst_cb.hide()
+        self.htype_cb.currentIndexChanged.connect(self._extra_field)
+
+
+    def _extra_field(self):
+        """
+        In case of the movement has been performed with card, 
+        it will display a new combobox with the registered
+        insitution names. 
+        """
+        if self.htype_cb.currentText() == "Card":
+            self.inst_cb.show()
+        elif self.htype_cb.currentText() == "Cash" and self.inst_cb.isVisible():
+            self.inst_cb.hide()
+
+
+    def _insert_movement(self) -> tuple:
+        """
+        Register a movement into the table Movements,
         """
         db_conn = DB_conn(dbname="budgetplanner")
         conn, cursor = db_conn.start()
@@ -104,16 +140,33 @@ class EnterExpense(object):
             self.options_mtype.currentText(),
             self.categories.currentText(),
             self.description.text(),
-            float(self.amount.text())
+            self.amount.text()
         )
-        query = "INSERT INTO movements (date, type, category, description, amount) VALUES (%s, %s, %s, %s, %s)"
+        query = "INSERT INTO movements (date, type, category, description, amount)\
+                 VALUES (%s, %s, %s, %s, %s)"
         cursor.execute(query, record)
+        self._reduce_balance(cursor)
         conn.commit()
         db_conn.end()
         # Remove the content of the fields
         self.description.clear()
         self.amount.clear()
 
+
+    def _reduce_balance(self, cursor):
+        """
+        Get the hold type used and institution (only if appropiate) 
+        for that movement and reduce its balance
+        """
+        htype = self.htype_cb.currentText()
+        query = f"UPDATE financial_holdings\
+                  SET amount = amount - {self.amount.text()}\
+                  WHERE holding_type = '{htype}'"
+        if htype == "Card":
+            query += f" AND institution = '{self.inst_cb.currentText()}'"
+        cursor.execute(query)
+        
+        
 
 if __name__ == "__main__":
     app = QtWidgets.QApplication(sys.argv)
