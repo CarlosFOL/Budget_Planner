@@ -1,7 +1,9 @@
 import subprocess
 import json
 import os
+from PyQt5.QtWidgets import QMessageBox
 import psycopg2
+from psycopg2.errors import ProgrammingError, UniqueViolation  
 
 
 class DB_conn:
@@ -13,10 +15,9 @@ class DB_conn:
         self.dbname = dbname
         self.host = os.getenv("PSQL_HOST")
         self.port = os.getenv("PSQL_PORT")
-        self.active = False
-        self.get_credentials()
+        self._get_credentials()
 
-    def get_credentials(self):
+    def _get_credentials(self):
         """
         Obtain the user and password to connec to the 
         budget planner database
@@ -29,6 +30,29 @@ class DB_conn:
         credentials = json.loads(data.stdout)
         self.user = credentials["user"]
         self.passw = credentials["pass"]
+
+    def execute(self, sql_command: str, parameters: tuple = None):
+        """
+        Execute the SQL command and return its outcome in case
+        if it does. 
+        """
+        self.start()
+        mssg = QMessageBox()
+        try:
+            if parameters is not None:
+                self.cursor.execute(sql_command, parameters)
+            else:
+                self.cursor.execute(sql_command)
+        except UniqueViolation:
+            mssg.setText("You're trying to register a record that already exists.")
+        else:
+            try:
+                return self.cursor.fetchall()
+            except ProgrammingError:
+                "A transaction changes the state of db, but does not return any outcome"
+                self.conn.commit()
+        finally:
+            self.end()
     
     def start(self):
         """
@@ -40,17 +64,13 @@ class DB_conn:
             password = self.passw, host = self.host,
             port = self.port)
         self.cursor = self.conn.cursor()
-        self.active += 1
-        return self.conn, self.cursor
 
     def end(self):
         """
         To finish the db connection
         """
-        if self.active: 
-            self.conn.close()
-            self.cursor.close()
-            self.active -= 1
+        self.conn.close()
+        self.cursor.close()
 
 
 if __name__ == "__main__":

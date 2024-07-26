@@ -5,10 +5,9 @@
 
 A GUI that allows you to manage both your income and expenses of your daily life. With this tool, you will be able to identify where you are spending your money and from this, make a better financial strategy.
 
----
 
 <div align=center>
-<img src="images/menu.png" width=330 height=250>
+<img src="images/menu.png" width=400 height=250>
 </div>
 
 This has 3 main options:

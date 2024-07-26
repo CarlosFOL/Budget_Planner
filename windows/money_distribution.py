@@ -6,13 +6,18 @@ from widgets import Button, ComboBox, Field, InputLine
 import sys
 
 
+
 class MoneyDistribution(object):
     """
     A window where you can see how much money you have save
     in cash and in cards.
     """
 
+
     def setupUi(self, MainWindow):
+        # Set the database connection
+        self.db_conn = DB_conn(dbname="budgetplanner")
+
         MainWindow.setGeometry(500, 200, 750, 700)
         self.centralwidget = QWidget(MainWindow)
         # Get the htypes that were added to the financial holding table
@@ -41,20 +46,15 @@ class MoneyDistribution(object):
         self._update_htypes()
         MainWindow.setCentralWidget(self.centralwidget)
     
+
     def _update_htypes(self):
         """
         It checks if there are htypes that have been added in order
         to show them in this window
         """
         self.add_htype.move(10, 140), self.rm_htype.move(200, 140)
-        db_conn = DB_conn(dbname="budgetplanner")
-        _, cursor = db_conn.start()
-        cursor.execute("""
-                    SELECT holding_type, institution, amount
-                    FROM financial_holdings
-                       """)
-        records = [htype for htype in cursor.fetchall()]
-        db_conn.end()
+        records = self.db_conn.execute(sql_command="SELECT holding_type, institution, amount\
+                                                    FROM financial_holdings")
         # Display
         ycoord = self.add_htype.y() 
         for htype, inst, amount in records:
@@ -82,7 +82,11 @@ class HoldingType(object):
     Special window to register a new holding type
     """
 
+
     def setupUi(self, MainWindow: QMainWindow):
+        # Set the db connection
+        self.db_conn = DB_conn(dbname="budgetplanner")
+
         MainWindow.setGeometry(600, 200, 500, 450)
         self.centralwidget = QWidget(MainWindow)
         # It tells you what you are seeing in this window
@@ -117,6 +121,7 @@ class HoldingType(object):
         self.htype_cb.currentIndexChanged.connect(self._show_more_fields)
         MainWindow.setCentralWidget(self.centralwidget)
 
+
     def _show_more_fields(self):
         """
         According to the holding type selected, it will display
@@ -137,6 +142,7 @@ class HoldingType(object):
             self._toggle_visibility(self.amount, self.input_amount, self.save_htype)
         self.save_htype.move(10, self.input_amount.y() + 80)
 
+
     def _toggle_visibility(self, *args, hide = False):
         """
         To hide or display the sent widgets.
@@ -148,27 +154,30 @@ class HoldingType(object):
             for field in args:
                 field.show()
     
+
     def _save_new_htype(self):
         """
         Once a button is clicked, the new htype is stored in the
         financial holding table
         """
-        db_conn = DB_conn(dbname="budgetplanner")
-        conn, cursor = db_conn.start()
         record = (
             self.htype_cb.currentText(),
             self.input_inst.text() if len(self.input_inst.text()) != 0 else None,
             self.input_amount.text(),
             datetime.now().date().strftime("%Y-%m-%d")
                   )
-        query = "INSERT INTO financial_holdings (holding_type, institution, amount, last_updated) \
-                 VALUES (%s, %s, %s, %s)"
-        cursor.execute(query, record)
-        conn.commit()
-        db_conn.end()
-        # Clean the fields
+        self.db_conn.execute(sql_command="INSERT INTO financial_holdings (holding_type, institution, amount, last_updated) \
+                                          VALUES (%s, %s, %s, %s)",
+                            parameters=record)
+    
+
+    def _clear_fields(self):
+        """
+        Clear all the fields once the new holding type is stored
+        """
         self.input_inst.clear()
         self.input_amount.clear()
+
 
 
 if __name__ == "__main__":

@@ -9,11 +9,14 @@ from widgets import ComboBox, Field, InputLine, Button
 class EnterExpense(object):
     """
     Window that displays the fields that you have to fill in in order
-    to register a new movement, either a income or expense. 
+    to register a new movement, either an income or expense. 
     """
     
 
     def setupUi(self, MainWindow: QMainWindow):
+        # Set the database connection
+        self.db_conn = DB_conn(dbname="budgetplanner")
+
         MainWindow.setGeometry(500, 200, 750, 700)
         self.centralwidget = QWidget(MainWindow)
         # It tells you what you can do on this window
@@ -31,7 +34,6 @@ class EnterExpense(object):
                               position=(10, 140),
                               dimensions=(145, 23),
                               texto="Type")
-        # Combo box
         self.options_mtype = ComboBox(cwidget=self.centralwidget, 
                                       options=("Income", "Expense"),
                                       position=(10, 180))
@@ -42,7 +44,6 @@ class EnterExpense(object):
                               position=(10, 260),
                               dimensions=(145, 23),
                               texto="Category")
-        # Combo box
         self.categories = ComboBox(cwidget=self.centralwidget,
                                    position=(10, 300))
         
@@ -99,13 +100,8 @@ class EnterExpense(object):
         Display a combobox with the registered holding types in
         the financial holding table.
         """
-        db_conn = DB_conn(dbname="budgetplanner")
-        _, cursor = db_conn.start()
-        # Get the recorded htypes
-        cursor.execute("SELECT holding_type, institution \
-                        FROM financial_holdings")
-        outcome = cursor.fetchall()
-        db_conn.end()
+        outcome = self.db_conn.execute(sql_command="SELECT holding_type, institution \
+                                                    FROM financial_holdings")
         self.htype_cb = ComboBox(cwidget=self.centralwidget, 
                                  position=(240, 540),
                                 # Set comprehension to avoid duplicates
@@ -133,8 +129,6 @@ class EnterExpense(object):
         """
         Register a movement into the table Movements,
         """
-        db_conn = DB_conn(dbname="budgetplanner")
-        conn, cursor = db_conn.start()
         record = (
             datetime.now().date().strftime("%Y-%m-%d"),
             self.options_mtype.currentText(),
@@ -142,18 +136,15 @@ class EnterExpense(object):
             self.description.text(),
             self.amount.text()
         )
-        query = "INSERT INTO movements (date, type, category, description, amount)\
-                 VALUES (%s, %s, %s, %s, %s)"
-        cursor.execute(query, record)
-        self._reduce_balance(cursor)
-        conn.commit()
-        db_conn.end()
-        # Remove the content of the fields
-        self.description.clear()
-        self.amount.clear()
+        self.db_conn.execute(sql_command="INSERT INTO \
+                                          movements (date, type, category, description, amount)\
+                                          VALUES (%s, %s, %s, %s, %s)",
+                            parameters=record)
+        self._update_balance()
+        self._clear_fields()
 
 
-    def _reduce_balance(self, cursor):
+    def _update_balance(self):
         """
         Get the hold type used and institution (only if appropiate) 
         for that movement and reduce its balance
@@ -164,7 +155,18 @@ class EnterExpense(object):
                   WHERE holding_type = '{htype}'"
         if htype == "Card":
             query += f" AND institution = '{self.inst_cb.currentText()}'"
-        cursor.execute(query)
+        self.db_conn.execute(sql_command=query)
+
+    
+    def _clear_fields(self):
+        """
+        Clear all the fields once the movement is stored.
+        """
+        self.options_mtype.setCurrentIndex(-1)
+        self.description.clear()
+        self.amount.clear()
+        self.htype_cb.setCurrentIndex(-1)
+        self.inst_cb.hide()
         
         
 
