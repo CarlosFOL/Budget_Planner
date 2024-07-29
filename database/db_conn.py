@@ -3,7 +3,8 @@ import json
 import os
 from PyQt5.QtWidgets import QMessageBox
 import psycopg2
-from psycopg2.errors import ProgrammingError, UniqueViolation  
+from psycopg2.errors import ProgrammingError, UniqueViolation
+from typing import Tuple
 
 
 class DB_conn:
@@ -31,7 +32,7 @@ class DB_conn:
         self.user = credentials["user"]
         self.passw = credentials["pass"]
 
-    def execute(self, sql_command: str, parameters: tuple = None):
+    def execute(self, sql_command: str, parameters: tuple = None) -> str | None | Tuple[str, list] :
         """
         Execute the SQL command and return its outcome in case
         if it does. 
@@ -44,13 +45,17 @@ class DB_conn:
             else:
                 self.cursor.execute(sql_command)
         except UniqueViolation:
+            mssg.setWindowTitle("Transaction Error")
+            mssg.setIcon(QMessageBox.Critical)
             mssg.setText("You're trying to register a record that already exists.")
+            x = mssg.exec_()
         else:
             try:
-                return self.cursor.fetchall()
+                return "Ok", self.cursor.fetchall() 
             except ProgrammingError:
                 "A transaction changes the state of db, but does not return any outcome"
                 self.conn.commit()
+                return "Ok"
         finally:
             self.end()
     

@@ -47,9 +47,12 @@ class SummaryExp(object):
         """
         self.seasons_cb = ComboBox(cwidget=self.centralwidget,
                                  position=(10, 180))
-        seasons = [str(s[0]) for s in self.db_conn.execute("SELECT sid FROM seasons")]
+        _, seasons = [str(s[0]) for s in self.db_conn.execute("SELECT sid FROM seasons")]
         # Store the value into the combobox
-        self.seasons_cb.addItems(seasons)
+        if type(seasons) == str: # if it only returns 1 season
+            self.seasons_cb.addItem(seasons)
+        else:
+            self.seasons_cb.addItems(seasons)
         self.seasons_cb.currentIndexChanged.connect(self._show_season_expenses)
     
 

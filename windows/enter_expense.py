@@ -1,7 +1,7 @@
 from database import DB_conn
 from datetime import datetime
 from PyQt5 import QtWidgets
-from PyQt5.QtWidgets import QMainWindow, QWidget
+from PyQt5.QtWidgets import QMainWindow, QMessageBox, QWidget
 import sys
 from widgets import ComboBox, Field, InputLine, Button
 
@@ -100,8 +100,8 @@ class EnterExpense(object):
         Display a combobox with the registered holding types in
         the financial holding table.
         """
-        outcome = self.db_conn.execute(sql_command="SELECT holding_type, institution \
-                                                    FROM financial_holdings")
+        _, outcome = self.db_conn.execute(sql_command="SELECT holding_type, institution \
+                                                       FROM financial_holdings")
         self.htype_cb = ComboBox(cwidget=self.centralwidget, 
                                  position=(240, 540),
                                 # Set comprehension to avoid duplicates
@@ -129,19 +129,33 @@ class EnterExpense(object):
         """
         Register a movement into the table Movements,
         """
-        record = (
-            datetime.now().date().strftime("%Y-%m-%d"),
-            self.options_mtype.currentText(),
-            self.categories.currentText(),
-            self.description.text(),
-            self.amount.text()
-        )
-        self.db_conn.execute(sql_command="INSERT INTO \
-                                          movements (date, type, category, description, amount)\
-                                          VALUES (%s, %s, %s, %s, %s)",
-                            parameters=record)
-        self._update_balance()
-        self._clear_fields()
+        record = ( datetime.now().date().strftime("%Y-%m-%d"), self.options_mtype.currentText(),
+            self.categories.currentText(), self.description.text(), self.amount.text() )
+        if not self._empty_fields(record):
+            status = self.db_conn.execute(
+                sql_command="INSERT INTO movements (date, type, category, description, amount)\
+                             VALUES (%s, %s, %s, %s, %s)",
+                parameters=record)
+            if status == "Ok":
+                self._update_balance()
+            self._clear_fields()
+        else:
+            mssg = QMessageBox()
+            mssg.setWindowTitle("Incomplete")
+            mssg.setText("Please, complete all the movement's fields")
+            mssg.setIcon(QMessageBox.Critical)
+            x = mssg.exec_()
+
+
+    def _empty_fields(self, record: tuple) -> bool:
+        """
+        It checks if all the movement's fields have been filled in.
+        In this way, we avoid to store an incomplete record. 
+        """
+        for element in record:
+            if element == "":
+                return True
+        return False
 
 
     def _update_balance(self):

@@ -53,8 +53,8 @@ class MoneyDistribution(object):
         to show them in this window
         """
         self.add_htype.move(10, 140), self.rm_htype.move(200, 140)
-        records = self.db_conn.execute(sql_command="SELECT holding_type, institution, amount\
-                                                    FROM financial_holdings")
+        _, records = self.db_conn.execute(sql_command="SELECT holding_type, institution, amount\
+                                                       FROM financial_holdings")
         # Display
         ycoord = self.add_htype.y() 
         for htype, inst, amount in records:
