@@ -55,26 +55,57 @@ class MoneyDistribution(object):
         self.add_htype.move(10, 140), self.rm_htype.move(200, 140)
         _, records = self.db_conn.execute(sql_command="SELECT holding_type, institution, amount\
                                                        FROM financial_holdings")
-        # Display
-        ycoord = self.add_htype.y() 
-        for htype, inst, amount in records:
-            if htype == "Card":
-                texto = f"{inst} ({htype})"
-            elif htype == "Cash":
-                texto = htype
-            Field(cwidget=self.centralwidget,
-                  position=(10, ycoord),
-                  dimensions=(300, 50),
-                  texto=f"{texto} --> {float(amount)} €")
-            ycoord += 80
-        Field(cwidget=self.centralwidget, 
-              position=(10, ycoord),
-              dimensions=(300, 50),
-              # The last element represent the amount of money
-              texto=f"TOTAL: {reduce(lambda a1, a2: a1 + a2, 
-                                     [r[-1] for r in records])} €")
-        self.add_htype.move(10, ycoord + 80), self.rm_htype.move(200, ycoord + 80)                
+        # Create a section for each holding type.
+        ycoord = self.add_htype.y()
+        for htype in ["Card", "Cash"]:
+            match_records = [r for r in records if r[0] == htype]
+            if len(match_records) > 0:
+                ycoord = self._create_section(htype, match_records, ycoord)    
+        self._get_total_amount(records, ycoord)                
         
+    
+    def _create_section(self, htype: str, match_rec: list | tuple, ycoord: int) -> int:
+        """
+        Create a section for a particular htype. 
+        """
+        Field(cwidget=self.centralwidget, position=(10, ycoord),
+              dimensions=(400, 30), texto=f"<u> {htype} </u>", bold=True, 
+              pointsize=18, weight=75)
+        sep = 40 # Separator of widgets
+        if htype == "Card":
+            for m_rec in match_rec:
+                Field(cwidget=self.centralwidget, position=(10, ycoord + sep),
+                          dimensions=(300, 50), texto=m_rec[1])
+                InputLine(cwidget=self.centralwidget, position=(10, ycoord + 2*sep), 
+                              texto=f"{str(m_rec[-1])} €", readonly=True)
+                ycoord += 2*sep
+        elif htype == "Cash":
+            # If this holding type was registered, then there is only 1 record within
+            # the matching records.
+            record = match_rec[0]
+            InputLine(cwidget=self.centralwidget, position=(10, ycoord + sep),
+                      texto=f"{str(record[-1])} €", readonly=True)
+            ycoord += sep
+        return ycoord + 2*sep
+
+
+    def _get_total_amount(self, records: list | tuple, ycoord):
+        """
+        Calculate the accumulative sum of the amounts of 
+        the registered htypes  
+        """
+        Field(cwidget=self.centralwidget, position=(10, ycoord),
+              dimensions=(300, 50), texto="TOTAL:", bold=True, 
+              pointsize=20, weight=75)
+        if len(records) != 0:
+            text = reduce(lambda a1, a2: a1 + a2, [r[-1] for r in records])
+        else:
+            text = 0
+        InputLine(cwidget=self.centralwidget, position=(112, ycoord + 5), 
+                  texto=f"{text} €", readonly=True)
+        # Adjust the position of the buttons to add or remove a htype
+        self.add_htype.move(10, ycoord + 90), self.rm_htype.move(200, ycoord + 90)
+
 
 
 class HoldingType(object):

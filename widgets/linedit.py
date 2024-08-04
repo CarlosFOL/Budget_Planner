@@ -10,12 +10,14 @@ class InputLine(QLineEdit):
     length 
     """
     
-    def __init__(self, cwidget: QWidget, position: tuple, 
-                 regex: str = None, max_char: int = None):
+    def __init__(self, cwidget: QWidget, position: tuple, texto: str = '', 
+                 regex: str = None, max_char: int = None, readonly: bool = False):
         super().__init__(cwidget)
         self.position = position
+        self.texto = texto
         self.regex = regex
         self.max_char = max_char
+        self.readonly = readonly
         self._setUp()
     
     def _setUp(self):
@@ -27,8 +29,11 @@ class InputLine(QLineEdit):
         font = QtGui.QFont()
         font.setPointSize(12)
         self.setFont(font)
-        if self.regex == None:
+        self.setText(self.texto)
+        if self.max_char is not None:
             self.setMaxLength(self.max_char)
-        else:
+        elif self.regex is not None:
             validator = QRegExpValidator(QRegExp(self.regex), self)
             self.setValidator(validator)
+        # Set if it's possible to edit the content of the widget.
+        self.setReadOnly(self.readonly)
