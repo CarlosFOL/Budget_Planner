@@ -5,6 +5,7 @@ from PyQt5.QtWidgets import QMessageBox
 import psycopg2
 from psycopg2.errors import ProgrammingError, UniqueViolation
 from typing import Tuple
+from widgets import Message_Box
 
 
 class DB_conn:
@@ -45,10 +46,9 @@ class DB_conn:
             else:
                 self.cursor.execute(sql_command)
         except UniqueViolation:
-            mssg.setWindowTitle("Transaction Error")
-            mssg.setIcon(QMessageBox.Critical)
-            mssg.setText("You're trying to register a record that already exists.")
-            x = mssg.exec_()
+            Message_Box(title="Transaction Error", 
+                        text="You're trying to register a record that already exists.",
+                        icon="Critical")
         else:
             try:
                 return "Ok", self.cursor.fetchall() 

@@ -1,9 +1,9 @@
 from database import DB_conn
 from datetime import datetime
 from PyQt5 import QtWidgets
-from PyQt5.QtWidgets import QMainWindow, QMessageBox, QWidget
+from PyQt5.QtWidgets import QMainWindow, QWidget
 import sys
-from widgets import ComboBox, Field, InputLine, Button
+from widgets import Button, ComboBox, Field, InputLine, Message_Box
 
 
 class EnterExpense(object):
@@ -140,11 +140,9 @@ class EnterExpense(object):
                 self._update_balance()
             self._clear_fields()
         else:
-            mssg = QMessageBox()
-            mssg.setWindowTitle("Incomplete")
-            mssg.setText("Please, complete all the movement's fields")
-            mssg.setIcon(QMessageBox.Critical)
-            x = mssg.exec_()
+            Message_Box(title="Incomplete", 
+                        text="Please, complete all the movement's fields",
+                        icon="Critical")
 
 
     def _empty_fields(self, record: tuple) -> bool:
@@ -163,14 +161,18 @@ class EnterExpense(object):
         Get the hold type used and institution (only if appropiate) 
         for that movement and reduce its balance
         """
+        operator = {"Income": "+", "Expense": "-"}
         htype = self.htype_cb.currentText()
         query = f"UPDATE financial_holdings\
-                  SET amount = amount - {self.amount.text()}\
+                  SET amount = amount {operator[self.options_mtype.currentText()]} {self.amount.text()}\
                   WHERE holding_type = '{htype}'"
         if htype == "Card":
             query += f" AND institution = '{self.inst_cb.currentText()}'"
         self.db_conn.execute(sql_command=query)
-
+        Message_Box(title="Operation successfully completed",
+                            text="The transaction has been done.",
+                            icon="Information")
+        
     
     def _clear_fields(self):
         """
