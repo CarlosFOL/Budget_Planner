@@ -164,8 +164,10 @@ class EnterExpense(object):
         operator = {"Income": "+", "Expense": "-"}
         htype = self.htype_cb.currentText()
         query = f"UPDATE financial_holdings\
-                  SET amount = amount {operator[self.options_mtype.currentText()]} {self.amount.text()}\
-                  WHERE holding_type = '{htype}'"
+                  SET\
+                    amount = amount {operator[self.options_mtype.currentText()]} {self.amount.text()}\
+                    AND last_updated = {datetime.now().date().strftime("%Y-%m-%d")}\
+                WHERE holding_type = '{htype}'"
         if htype == "Card":
             query += f" AND institution = '{self.inst_cb.currentText()}'"
         self.db_conn.execute(sql_command=query)
