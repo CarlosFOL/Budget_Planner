@@ -16,10 +16,8 @@ This has 3 main options:
 <img src="images/enter_mov.png" widht=200 height=300>
 
 2. Money distribution: To check the balances of the different registered payment methods.
-<img src="images/money_dist.png" width=280 height=280> 
-<br>
+<img src="images/money_dist.png" width=280 height=280> <br>
 Also, you are able to add or remove a payment method or a specific institution in the Card section by using the buttons below: Add Holding and Remove Holding.
-
 
 
 3. Expense summary: It displays the data associated with the monthly expenses in tabular form.

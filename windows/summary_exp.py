@@ -47,7 +47,7 @@ class SummaryExp(object):
         """
         self.seasons_cb = ComboBox(cwidget=self.centralwidget,
                                  position=(10, 180))
-        _, seasons = [s for s in self.db_conn.execute("SELECT sid FROM seasons")]
+        seasons = [s for s in self.db_conn.execute("SELECT sid FROM seasons")]
         # Store the value into the combobox
         if len(seasons) == 1: # if it only returns 1 season
             self.seasons_cb.addItem(str(seasons[0][0])) # Structure: [(202425,)]
@@ -61,14 +61,12 @@ class SummaryExp(object):
         Build the table by getting the qualified records and
         cast it to QTableView object.
         """
-        # Start the connection
-        self.db_conn.start()
-
-        season = self.seasons_cb.currentText()
+        season = self.season_cb.currentText()
+        # Create the temporary table with the records belong to the selected season
         self._qualified_records(season)
+        # Build the table with the expenses of each month and organized by category  
         data = self._build_table(season)
-        
-        # Add the content of the table
+        # Add the content
         model = Table(data)
         self.table.setModel(model)
 
@@ -77,7 +75,7 @@ class SummaryExp(object):
         """
         Get those movements that belong to the selected season 
         """
-        query = f"""
+        sql_cmd = f"""
         CREATE TEMPORARY TABLE exp_table AS
         SELECT date, category, amount
         FROM movements JOIN (SELECT start, finish 
@@ -85,7 +83,8 @@ class SummaryExp(object):
                              WHERE sid = {season}) AUX 
                         ON (date BETWEEN start AND finish) AND (type = 'Expense')   
         """
-        self.db_conn.cursor.execute(query)
+        # To not kill the db session
+        self.db_conn.execute(commands=sql_cmd, end_conn=False)
 
 
     def _build_table(self, season: int) -> pd.DataFrame:
@@ -103,10 +102,9 @@ class SummaryExp(object):
             WHERE EXTRACT(YEAR FROM date) = {year} AND EXTRACT(MONTH FROM date) = {month}
             GROUP BY category
             """
-            self.db_conn.cursor.execute(query)
-            rowcount = self.db_conn.cursor.rowcount
-            if not rowcount == 0:
-                partition = pd.DataFrame(self.db_conn.cursor.fetchall()).set_index(0)
+            response = self.db_conn.execute(commands=query, end_conn=False)
+            if len(response) != 0:
+                partition = pd.DataFrame(response.set_index(0))
                 df_expenses = pd.merge(left=df_expenses, 
                                      right=partition,
                                      left_index=True,
@@ -153,6 +151,7 @@ class SummaryExp(object):
         record = pd.DataFrame(exp_table.sum(axis = 0), 
                               columns=["Total"]).T
         return record
+
 
 
 if __name__ == "__main__":

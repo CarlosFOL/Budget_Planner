@@ -100,8 +100,8 @@ class EnterExpense(object):
         Display a combobox with the registered holding types in
         the financial holding table.
         """
-        _, outcome = self.db_conn.execute(sql_command="SELECT holding_type, institution \
-                                                       FROM financial_holdings")
+        outcome = self.db_conn.execute("SELECT holding_type, institution \
+                                        FROM financial_holdings")
         self.htype_cb = ComboBox(cwidget=self.centralwidget, 
                                  position=(240, 540),
                                 # Set comprehension to avoid duplicates
@@ -129,15 +129,20 @@ class EnterExpense(object):
         """
         Register a movement into the table Movements,
         """
-        record = ( datetime.now().date().strftime("%Y-%m-%d"), self.options_mtype.currentText(),
-            self.categories.currentText(), self.description.text(), self.amount.text() )
-        if not self._empty_fields(record):
-            status = self.db_conn.execute(
-                sql_command="INSERT INTO movements (date, type, category, description, amount)\
-                             VALUES (%s, %s, %s, %s, %s)",
-                parameters=record)
+        inputs = (datetime.now().date().strftime("%Y-%m-%d"),
+                  self.options_mtype.currentText(),
+                  self.categories.currentText(), 
+                  self.description.text(), 
+                  self.amount.text())
+        query = "INSERT INTO movements (date, type, category, description, amount)\
+                 VALUES ('%s', '%s', '%s', '%s', %s)"
+        if not self._empty_fields(inputs):
+            query = query%inputs # Add the values into the query
+            status = self.db_conn.execute(commands=[query, self._upd_balance()])
             if status == "Ok":
-                self._update_balance()
+                Message_Box(title="Operation successfully completed",
+                            text="The transaction has been done.",
+                            icon="Information")
             self._clear_fields()
         else:
             Message_Box(title="Incomplete", 
@@ -156,7 +161,7 @@ class EnterExpense(object):
         return False
 
 
-    def _update_balance(self):
+    def _upd_balance(self):
         """
         Get the hold type used and institution (only if appropiate) 
         for that movement and reduce its balance
@@ -166,14 +171,11 @@ class EnterExpense(object):
         query = f"UPDATE financial_holdings\
                   SET\
                     amount = amount {operator[self.options_mtype.currentText()]} {self.amount.text()}\
-                    AND last_updated = {datetime.now().date().strftime("%Y-%m-%d")}\
+                    , last_updated = '{datetime.now().date().strftime("%Y-%m-%d")}'\
                 WHERE holding_type = '{htype}'"
         if htype == "Card":
             query += f" AND institution = '{self.inst_cb.currentText()}'"
-        self.db_conn.execute(sql_command=query)
-        Message_Box(title="Operation successfully completed",
-                            text="The transaction has been done.",
-                            icon="Information")
+        return query
         
     
     def _clear_fields(self):

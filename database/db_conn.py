@@ -1,10 +1,11 @@
 import subprocess
 import json
 import os
-from PyQt5.QtWidgets import QMessageBox
 import psycopg2
-from psycopg2.errors import ProgrammingError, UniqueViolation
-from typing import Tuple
+from psycopg2.errors import CheckViolation, ProgrammingError, UniqueViolation
+from typing import List
+import os
+os.chdir("..")
 from widgets import Message_Box
 
 
@@ -33,31 +34,36 @@ class DB_conn:
         self.user = credentials["user"]
         self.passw = credentials["pass"]
 
-    def execute(self, sql_command: str, parameters: tuple = None) -> str | None | Tuple[str, list] :
+    def execute(self, commands: str | List[str], end_conn=True) -> list | None:
         """
-        Execute the SQL command and return its outcome in case
-        if it does. 
+        It tries to execute the sent SQL command(s). And it returns any result
+        in case if it does, otherwise save the changes into the database. 
         """
         self.start()
-        mssg = QMessageBox()
         try:
-            if parameters is not None:
-                self.cursor.execute(sql_command, parameters)
+            if type(commands) == str:
+                self.cursor.execute(commands)
             else:
-                self.cursor.execute(sql_command)
+                for sql_cmd in commands:            
+                    self.cursor.execute(sql_cmd)
         except UniqueViolation:
             Message_Box(title="Transaction Error", 
                         text="You're trying to register a record that already exists.",
                         icon="Critical")
+        except CheckViolation:
+            Message_Box(title="Negative balance",
+                        text="The transaction cannot be completed. You don't have enough money.",
+                        icon="Critical")
         else:
             try:
-                return "Ok", self.cursor.fetchall() 
+                return self.cursor.fetchall() 
             except ProgrammingError:
                 "A transaction changes the state of db, but does not return any outcome"
                 self.conn.commit()
-                return "Ok"
+                return "Ok" # To confirm the transaction
         finally:
-            self.end()
+            if end_conn:
+                self.end()
     
     def start(self):
         """

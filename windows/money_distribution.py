@@ -53,8 +53,8 @@ class MoneyDistribution(object):
         to show them in this window
         """
         self.add_htype.move(10, 140), self.rm_htype.move(200, 140)
-        _, records = self.db_conn.execute(sql_command="SELECT holding_type, institution, amount\
-                                                       FROM financial_holdings")
+        records = self.db_conn.execute("SELECT holding_type, institution, amount\
+                                        FROM financial_holdings")
         # Create a section for each holding type.
         ycoord = self.add_htype.y()
         for htype in ["Card", "Cash"]:
@@ -191,15 +191,14 @@ class HoldingType(object):
         Once a button is clicked, the new htype is stored in the
         financial holding table
         """
-        record = (
+        inputs = (
             self.htype_cb.currentText(),
             self.input_inst.text() if len(self.input_inst.text()) != 0 else None,
             self.input_amount.text(),
             datetime.now().date().strftime("%Y-%m-%d")
-                  )
-        self.db_conn.execute(sql_command="INSERT INTO financial_holdings (holding_type, institution, amount, last_updated) \
-                                          VALUES (%s, %s, %s, %s)",
-                            parameters=record)
+            )
+        self.db_conn.execute("INSERT INTO financial_holdings (holding_type, institution, amount, last_updated) \
+                              VALUES (%s, %s, %s, %s)"%inputs)
     
 
     def _clear_fields(self):
