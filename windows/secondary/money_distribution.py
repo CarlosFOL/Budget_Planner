@@ -3,23 +3,27 @@ from datetime import datetime
 from functools import reduce
 from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget
 from widgets import Button, ComboBox, Field, InputLine
+from .secondary_wind import SecondaryWindow
 import sys
 
 
 
-class MoneyDistribution(object):
+class MoneyDistribution(SecondaryWindow):
     """
     A window where you can see how much money you have save
     in cash and in cards.
     """
 
+    def __init__(self, main_window: QMainWindow, menu: QMainWindow, htype_wind: QMainWindow):
+        super().__init__(main_window, menu)
+        self.htype_wind = htype_wind
 
-    def setupUi(self, MainWindow):
+    def setupUi(self):
         # Set the database connection
         self.db_conn = DB_conn(dbname="budgetplanner")
 
-        MainWindow.setGeometry(500, 200, 750, 700)
-        self.centralwidget = QWidget(MainWindow)
+        self.main_window.setGeometry(500, 200, 750, 700)
+        self.centralwidget = QWidget(self.main_window)
         # Get the htypes that were added to the financial holding table
         # It tells you what you are seeing in this window
         self.indication = Field(cwidget=self.centralwidget, position=(10, 20),
@@ -31,6 +35,7 @@ class MoneyDistribution(object):
                              position=(10, 65),
                              dimensions=(50, 50),
                              mssg="⟵")
+        self.back_button.clicked.connect(self._back_menu)
         # To add and remove and holding type
         bsize = (175, 50) # Button's size
         self.add_htype = Button(cwidget=self.centralwidget,
@@ -38,14 +43,23 @@ class MoneyDistribution(object):
                                 dimensions=bsize,
                                 pointsize=12,
                                 mssg="Add Holding")
+        self.add_htype.clicked.connect(self._show_htype_wind)
         self.rm_htype = Button(cwidget=self.centralwidget,
                                position=(200, 140),
                                dimensions=bsize,
                                pointsize=12,
                                mssg="Remove Holding")
         self._update_htypes()
-        MainWindow.setCentralWidget(self.centralwidget)
+        self.main_window.setCentralWidget(self.centralwidget)
     
+
+    def _show_htype_wind(self):
+        """
+        Display the window that allows you to register
+        a new holding type.
+        """
+        self.htype_wind.show()
+
 
     def _update_htypes(self):
         """

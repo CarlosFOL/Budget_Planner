@@ -2,23 +2,24 @@ from database import DB_conn
 from datetime import datetime
 from PyQt5 import QtWidgets
 from PyQt5.QtWidgets import QMainWindow, QWidget
+from .secondary_wind import SecondaryWindow
 import sys
 from widgets import Button, ComboBox, Field, InputLine, Message_Box
 
 
-class EnterExpense(object):
+class EnterExpense(SecondaryWindow):
     """
     Window that displays the fields that you have to fill in in order
     to register a new movement, either an income or expense. 
     """
     
 
-    def setupUi(self, MainWindow: QMainWindow):
+    def setupUi(self):
         # Set the database connection
         self.db_conn = DB_conn(dbname="budgetplanner")
 
-        MainWindow.setGeometry(500, 200, 750, 700)
-        self.centralwidget = QWidget(MainWindow)
+        self.main_window.setGeometry(500, 200, 750, 700)
+        self.centralwidget = QWidget(self.main_window)
         # It tells you what you can do on this window
         self.indication = Field(cwidget=self.centralwidget, position=(10, 5),
                                 texto="Fill in the fields of the movement",
@@ -29,6 +30,7 @@ class EnterExpense(object):
                              position=(10, 60),                
                              dimensions=(50, 50),
                              mssg="⟵")
+        self.back_button.clicked.connect(self._back_menu)
         # To select the movement type
         self.mov_type = Field(cwidget=self.centralwidget, 
                               position=(10, 140),
@@ -77,7 +79,7 @@ class EnterExpense(object):
                               mssg="Enviar")
         self.send_mv.clicked.connect(self._insert_movement)
         
-        MainWindow.setCentralWidget(self.centralwidget)
+        self.main_window.setCentralWidget(self.centralwidget)
 
 
     def _update_categories(self):

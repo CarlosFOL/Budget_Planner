@@ -2,24 +2,26 @@ from database import DB_conn
 import numpy as np
 import pandas as pd
 from PyQt5.QtWidgets import QApplication, QMainWindow, QTableView, QWidget
-from widgets import Button, ComboBox, Field, Table
+from .secondary_wind import SecondaryWindow
 import sys
+from typing import List, Tuple
+from widgets import Button, ComboBox, Field, Table
 
 
 
-class SummaryExp(object):
+class SummaryExp(SecondaryWindow):
     """
     It divides the expenses I have made during a particular
     season into categories and shows them in tabular form. 
     """
 
 
-    def setupUi(self, MainWindow):
+    def setupUi(self):
         # Set the db connection
         self.db_conn = DB_conn(dbname="budgetplanner")
 
-        MainWindow.setGeometry(300, 200, 1400, 620)
-        self.centralwidget = QWidget(MainWindow)
+        self.main_window.setGeometry(300, 200, 1400, 620)
+        self.centralwidget = QWidget(self.main_window)
         # It tells you what you are seeing in this window
         self.indication = Field(cwidget=self.centralwidget, position=(10, 5),
                                 texto="See how much you spend over the period",
@@ -30,15 +32,16 @@ class SummaryExp(object):
                              position=(10, 60),
                              dimensions=(50, 50),                
                              mssg="⟵")
+        self.back_button.clicked.connect(self._back_menu)
         # To choose the season
         self.season_f = Field(cwidget=self.centralwidget,
                             position=(10, 140),
                             texto="Season",
                             dimensions=(145, 23))
         self._set_seasons()
-        self.table = QTableView(MainWindow)
+        self.table = QTableView(self.main_window)
         self.table.setGeometry(50, 250, 1295, 325)
-        MainWindow.setCentralWidget(self.centralwidget)
+        self.main_window.setCentralWidget(self.centralwidget)
 
 
     def _set_seasons(self):
@@ -61,9 +64,7 @@ class SummaryExp(object):
         Build the table by getting the qualified records and
         cast it to QTableView object.
         """
-        season = self.season_cb.currentText()
-        # Create the temporary table with the records belong to the selected season
-        self._qualified_records(season)
+        season = self.seasons_cb.currentText()
         # Build the table with the expenses of each month and organized by category  
         data = self._build_table(season)
         # Add the content
@@ -71,62 +72,44 @@ class SummaryExp(object):
         self.table.setModel(model)
 
 
-    def _qualified_records(self, season: int):
+    def _qualified_records(self, season: int) -> List[Tuple[str, str, str]]:
         """
         Get those movements that belong to the selected season 
         """
         sql_cmd = f"""
-        CREATE TEMPORARY TABLE exp_table AS
-        SELECT date, category, amount
+        SELECT EXTRACT(YEAR FROM date), EXTRACT(MONTH FROM date), category, amount
         FROM movements JOIN (SELECT start, finish 
                              FROM seasons 
                              WHERE sid = {season}) AUX 
                         ON (date BETWEEN start AND finish) AND (type = 'Expense')   
         """
-        # To not kill the db session
-        self.db_conn.execute(commands=sql_cmd, end_conn=False)
+        return self.db_conn.execute(commands=sql_cmd)
 
 
     def _build_table(self, season: int) -> pd.DataFrame:
         """
         Build the expenses table of a particular season
         """
-        cols = self._months_distribution(start_year=int(season[:4]))
-        idx = ["Alojamiento", "Servicios", "Comida", "Telefonia", 
-                "Transporte", "Universidad","Ocio", "Gym", "Otros"]
-        df_expenses = pd.DataFrame(index=idx)
-        for year, month in cols:
-            query = f"""
-            SELECT category, SUM(amount)
-            FROM exp_table
-            WHERE EXTRACT(YEAR FROM date) = {year} AND EXTRACT(MONTH FROM date) = {month}
-            GROUP BY category
-            """
-            response = self.db_conn.execute(commands=query, end_conn=False)
-            if len(response) != 0:
-                partition = pd.DataFrame(response.set_index(0))
-                df_expenses = pd.merge(left=df_expenses, 
-                                     right=partition,
-                                     left_index=True,
-                                     right_index=True,
-                                     how='outer')
-            else:
-                # Each column represent a month and a period is composed by 12 months.
-                # Therefore, we can know in which months we don't have expenses yet.
+        df_expenses = pd.DataFrame(self._qualified_records(season), 
+                            columns = ["Year", "Month", "Category", "Amount"])
+        df_expenses = df_expenses.pivot_table(index = "Category", columns=["Year", "Month"],
+                                              values="Amount", aggfunc="sum")
+        columns = self._months_distribution(start_year=int(season[:4]))
+        for year, month in columns:
+            # Each column represent a month and a period is composed by 12 months.
+            # Therefore, we can know in which months we don't have expenses yet.
+            if (year, month) not in df_expenses.columns:
+                pos = columns.get_loc((year, month)) 
+                idx = ["Alojamiento", "Servicios", "Comida", "Telefonia", 
+                       "Transporte", "Universidad","Ocio", "Gym", "Otros"]
                 empty_db = pd.DataFrame(
                     np.zeros( (len(idx), 12 - df_expenses.shape[1]) ),
-                    index = idx
-                    )
-                df_expenses = pd.merge(left=df_expenses,
-                                     right=empty_db,
-                                     left_index=True,
-                                     right_index=True,
-                                     how='outer')
-                break
-        # Once the data is retrieved
-        self.db_conn.end()
-        
-        df_expenses.columns = cols
+                    index = idx, 
+                    columns = columns[pos:])
+                df_expenses = pd.merge(left=df_expenses, right=empty_db,
+                                       left_index=True, right_index=True,
+                                       how='outer')
+                break        
         df_expenses.fillna(0, inplace=True)
         # Add the total amount
         df_expenses = pd.concat([df_expenses, self._total_amount(df_expenses)], axis=0)
@@ -140,7 +123,8 @@ class SummaryExp(object):
         dist_sy = pd.MultiIndex.from_product( [[start_year], list(range(7, 13))] )
         dist_fy = pd.MultiIndex.from_product( [[start_year + 1], list(range(1, 7))] )
         dist_months = dist_sy.append(dist_fy)
-        return list(dist_months)
+        dist_months.names = ["Year", "Month"]
+        return dist_months
 
 
     def _total_amount(self, exp_table: pd.DataFrame) -> pd.DataFrame:

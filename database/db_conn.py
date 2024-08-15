@@ -34,7 +34,7 @@ class DB_conn:
         self.user = credentials["user"]
         self.passw = credentials["pass"]
 
-    def execute(self, commands: str | List[str], end_conn=True) -> list | None:
+    def execute(self, commands: str | List[str]) -> list | None:
         """
         It tries to execute the sent SQL command(s). And it returns any result
         in case if it does, otherwise save the changes into the database. 
@@ -62,8 +62,7 @@ class DB_conn:
                 self.conn.commit()
                 return "Ok" # To confirm the transaction
         finally:
-            if end_conn:
-                self.end()
+            self.end()
     
     def start(self):
         """
@@ -80,9 +79,9 @@ class DB_conn:
         """
         To finish the db connection
         """
-        self.conn.close()
         self.cursor.close()
-
+        self.conn.close()
+        
 
 if __name__ == "__main__":
     conn = DB_conn(dbname="budgetplanner")
