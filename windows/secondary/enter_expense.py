@@ -1,7 +1,6 @@
 from database import DB_conn
 from datetime import datetime
-from PyQt5 import QtWidgets
-from PyQt5.QtWidgets import QMainWindow, QWidget
+from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget
 from .secondary_wind import SecondaryWindow
 import sys
 from widgets import Button, ComboBox, Field, InputLine, Message_Box
@@ -145,7 +144,7 @@ class EnterExpense(SecondaryWindow):
                 Message_Box(title="Operation successfully completed",
                             text="The transaction has been done.",
                             icon="Information")
-            self._clear_fields()
+            self.refresh()
         else:
             Message_Box(title="Incomplete", 
                         text="Please, complete all the movement's fields",
@@ -178,23 +177,25 @@ class EnterExpense(SecondaryWindow):
         if htype == "Card":
             query += f" AND institution = '{self.inst_cb.currentText()}'"
         return query
-        
     
-    def _clear_fields(self):
+
+    def refresh(self):
         """
-        Clear all the fields once the movement is stored.
+        Clear all the fields once a movement is stored or
+        if the EnterExpense window is reopened.
         """
         self.options_mtype.setCurrentIndex(-1)
         self.description.clear()
         self.amount.clear()
         self.htype_cb.setCurrentIndex(-1)
         self.inst_cb.hide()
+
         
         
 
 if __name__ == "__main__":
-    app = QtWidgets.QApplication(sys.argv)
-    MainWindow = QtWidgets.QMainWindow()
+    app = QApplication(sys.argv)
+    MainWindow = QMainWindow()
     ui = EnterExpense()
     ui.setupUi(MainWindow)
     MainWindow.show()

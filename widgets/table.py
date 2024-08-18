@@ -1,5 +1,3 @@
-import pandas as pd
-from PyQt5.QtWidgets import QHeaderView
 from PyQt5.QtCore import QAbstractTableModel, Qt
 
 

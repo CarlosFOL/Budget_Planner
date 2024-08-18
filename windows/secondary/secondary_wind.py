@@ -21,3 +21,11 @@ class SecondaryWindow(ABC):
     def _back_menu(self):
         self.main_window.close()
         self.menu.show()
+
+    @abstractmethod
+    def refresh(self):
+        """
+        Once a window is reopende, clear all the fields and load the changes made 
+        into the budgetplanner db to show the updated information. 
+        """
+        pass

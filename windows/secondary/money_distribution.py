@@ -49,7 +49,7 @@ class MoneyDistribution(SecondaryWindow):
                                dimensions=bsize,
                                pointsize=12,
                                mssg="Remove Holding")
-        self._update_htypes()
+        self.refresh()
         self.main_window.setCentralWidget(self.centralwidget)
     
 
@@ -61,10 +61,10 @@ class MoneyDistribution(SecondaryWindow):
         self.htype_wind.show()
 
 
-    def _update_htypes(self):
+    def refresh(self):
         """
         It checks if there are htypes that have been added in order
-        to show them in this window
+        to show them in this window.
         """
         self.add_htype.move(10, 140), self.rm_htype.move(200, 140)
         records = self.db_conn.execute("SELECT holding_type, institution, amount\

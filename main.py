@@ -25,11 +25,14 @@ class MainWindow_BP(MenuBP, QMainWindow):
         """
         self.hide()
         if wind == 'E':
+            self.expense_wind.clear_fields()
             self.expense_wind.show()
-        elif wind == 'S':
-            self.summ_wind.show()
         elif wind == 'M':
+            self.money_wind.update_balances()
             self.money_wind.show()
+        elif wind == 'S':
+            self.summ_wind.clear_fields()
+            self.summ_wind.show()
 
 
 
@@ -43,7 +46,12 @@ class ExpenseWindow(QMainWindow):
         super().__init__()
         self.window = EnterExpense(main_window=self, menu=menu)
         self.window.setupUi()
-
+    
+    def clear_fields(self):
+        """
+        Clear all the fields once this window is reopened
+        """
+        self.window.refresh()
 
 
 
@@ -59,6 +67,12 @@ class MoneyDistWindow(QMainWindow):
                                         menu=menu, 
                                         htype_wind=HoldingWindow())
         self.window.setupUi()
+    
+    def update_balances(self):
+        """
+        It updates the balances of the htypes once this window is open.
+        """
+        self.window.refresh()
 
 
 
@@ -85,6 +99,13 @@ class SummaryWindow(QMainWindow):
         super().__init__()
         self.window = SummaryExp(main_window=self, menu=menu)
         self.window.setupUi()
+    
+
+    def clear_fields(self):
+        """
+        Only show the season ComboBox with the default value ('') settled.
+        """
+        self.window.refresh()
         
 
 

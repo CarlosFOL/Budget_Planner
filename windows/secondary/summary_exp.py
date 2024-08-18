@@ -1,3 +1,4 @@
+from calendar import month_name
 from database import DB_conn
 import numpy as np
 import pandas as pd
@@ -40,7 +41,9 @@ class SummaryExp(SecondaryWindow):
                             dimensions=(145, 23))
         self._set_seasons()
         self.table = QTableView(self.main_window)
-        self.table.setGeometry(50, 250, 1295, 325)
+        self.table.move(50, 250)
+        self.table.setGeometry(350, 250, 695, 328)
+        self.table.hide()
         self.main_window.setCentralWidget(self.centralwidget)
 
 
@@ -52,29 +55,51 @@ class SummaryExp(SecondaryWindow):
                                  position=(10, 180))
         seasons = [s for s in self.db_conn.execute("SELECT sid FROM seasons")]
         # Store the value into the combobox
-        if len(seasons) == 1: # if it only returns 1 season
-            self.seasons_cb.addItem(str(seasons[0][0])) # Structure: [(202425,)]
-        else:
-            self.seasons_cb.addItems([str(s[0]) for s in seasons])
-        self.seasons_cb.currentIndexChanged.connect(self._show_season_expenses)
+        self.seasons_cb.addItems([str(s[0]) for s in seasons])
+        self.seasons_cb.currentIndexChanged.connect(self._add_season_details)
     
 
-    def _show_season_expenses(self):
+    def _add_season_details(self):
         """
-        Build the table by getting the qualified records and
-        cast it to QTableView object.
+        Generate the table with all the expenses of the selected season and 
+        create a ComboBox that stores the years that are part of the season. 
         """
         season = self.seasons_cb.currentText()
-        # Build the table with the expenses of each month and organized by category  
-        data = self._build_table(season)
-        # Add the content
-        model = Table(data)
-        self.table.setModel(model)
+        if season != '':
+            # The columns of this table will be fitered according to the selected year.
+            self._build_table(season)
+            # Create the combobox that stores the years that part of the season
+            self.year_field = Field(cwidget=self.centralwidget,
+                                    position=(200, 140),
+                                    texto="Year", 
+                                    dimensions=(145, 23))
+            self.year_cb = ComboBox(cwidget=self.centralwidget,
+                                     position=(200, 180),
+                                     options=[season[:4], f"20{season[-2:]}"])
+            self.year_field.show()
+            self.year_cb.show()
+            self.year_cb.currentIndexChanged.connect(self._show_table)
+        elif season == '':
+            self.refresh()
+    
+
+    def _build_table(self, season = int):
+        """
+        Build the table with all the expenses made in the season.
+        """
+        # Get the expenses made during that time.
+        data = pd.DataFrame(self._qualified_records(season), 
+                            columns = ["Year", "Month", "Category", "Amount"])
+        # Specify a format
+        data = data.pivot_table(index = "Category", columns=["Year", "Month"],
+                                       values="Amount", aggfunc="sum")
+        # Fill in the table with the missing months
+        self.df_expenses = self._fillin_table(data, season)
 
 
     def _qualified_records(self, season: int) -> List[Tuple[str, str, str]]:
         """
-        Get those movements that belong to the selected season 
+        Get those movements that belong to the season 
         """
         sql_cmd = f"""
         SELECT EXTRACT(YEAR FROM date), EXTRACT(MONTH FROM date), category, amount
@@ -84,33 +109,31 @@ class SummaryExp(SecondaryWindow):
                         ON (date BETWEEN start AND finish) AND (type = 'Expense')   
         """
         return self.db_conn.execute(commands=sql_cmd)
+    
 
-
-    def _build_table(self, season: int) -> pd.DataFrame:
+    def _fillin_table(self, data: pd.DataFrame, season: int) -> pd.DataFrame:
         """
-        Build the expenses table of a particular season
+        Check which months are missing from expenses table 
+        to add them.
         """
-        df_expenses = pd.DataFrame(self._qualified_records(season), 
-                            columns = ["Year", "Month", "Category", "Amount"])
-        df_expenses = df_expenses.pivot_table(index = "Category", columns=["Year", "Month"],
-                                              values="Amount", aggfunc="sum")
-        columns = self._months_distribution(start_year=int(season[:4]))
-        for year, month in columns:
-            # Each column represent a month and a period is composed by 12 months.
-            # Therefore, we can know in which months we don't have expenses yet.
-            if (year, month) not in df_expenses.columns:
-                pos = columns.get_loc((year, month)) 
+        season_months = self._months_distribution(start_year=int(season[:4]))
+        for year, month in season_months:
+            if (year, month) not in data.columns:
+                pos = season_months.get_loc((year, month)) 
                 idx = ["Alojamiento", "Servicios", "Comida", "Telefonia", 
                        "Transporte", "Universidad","Ocio", "Gym", "Otros"]
+                # Each season is composed by 12 months, so once we find a month
+                # where any expense was recorded, then we know that from here,
+                # we have to fill the expense table.
                 empty_db = pd.DataFrame(
-                    np.zeros( (len(idx), 12 - df_expenses.shape[1]) ),
+                    np.zeros( (len(idx), 12 - data.shape[1]) ),
                     index = idx, 
-                    columns = columns[pos:])
-                df_expenses = pd.merge(left=df_expenses, right=empty_db,
+                    columns = season_months[pos:])
+                df_expenses = pd.merge(left=data, right=empty_db,
                                        left_index=True, right_index=True,
                                        how='outer')
-                break        
-        df_expenses.fillna(0, inplace=True)
+                break
+        df_expenses.fillna(0)
         # Add the total amount
         df_expenses = pd.concat([df_expenses, self._total_amount(df_expenses)], axis=0)
         return df_expenses
@@ -136,6 +159,44 @@ class SummaryExp(SecondaryWindow):
                               columns=["Total"]).T
         return record
 
+
+    def _show_table(self):
+        """
+        Show the expenses table according to the selected year.
+        """
+        # Make the corresponding transformations to the expense table
+        content = self._process_table()
+        # Create the model
+        model = Table(content)
+        self.table.setModel(model)
+        self.table.show()
+    
+
+    def _process_table(self) -> pd.DataFrame:
+        """
+        Filter the months that don't belong to the selected year and use
+        the month's names instead of their number
+        """
+        new_table = self.df_expenses.loc[:, int(self.year_cb.currentText())]
+        new_table.columns = [month_name[int(month)] for month in new_table.columns]
+        return new_table
+    
+
+    def refresh(self):
+        """
+        Set the default option ('') in the season ComboBox and hide the
+        year ComboBox or table or both in case they are visible
+        """
+        self.seasons_cb.setCurrentIndex(-1)
+        try:
+            # When this window is open, these widgets does no exist yet.
+            # It's necessary to choose a season to generate them, so this
+            # could raise an exception if you select the "" at the beginning.
+            self.year_field.hide()
+            self.year_cb.hide()
+        except AttributeError:
+            pass
+            
 
 
 if __name__ == "__main__":
