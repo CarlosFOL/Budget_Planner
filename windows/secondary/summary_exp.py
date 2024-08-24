@@ -188,6 +188,7 @@ class SummaryExp(SecondaryWindow):
         year ComboBox or table or both in case they are visible
         """
         self.seasons_cb.setCurrentIndex(-1)
+        self.table.hide()
         try:
             # When this window is open, these widgets does no exist yet.
             # It's necessary to choose a season to generate them, so this

@@ -10,10 +10,11 @@ class InputLine(QLineEdit):
     length 
     """
     
-    def __init__(self, cwidget: QWidget, position: tuple, texto: str = '', 
-                 regex: str = None, max_char: int = None, readonly: bool = False):
+    def __init__(self, cwidget: QWidget, position: tuple, dimensions: tuple = (190, 41), 
+                 texto: str = '', regex: str = None, max_char: int = None, readonly: bool = False):
         super().__init__(cwidget)
         self.position = position
+        self.dimensions = dimensions
         self.texto = texto
         self.regex = regex
         self.max_char = max_char
@@ -25,7 +26,7 @@ class InputLine(QLineEdit):
         Set the maximum amount of characters and the font-size
         into the widget.
         """
-        self.setGeometry(*self.position, 190, 41)
+        self.setGeometry(*self.position, *self.dimensions)
         font = QtGui.QFont()
         font.setPointSize(12)
         self.setFont(font)

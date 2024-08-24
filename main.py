@@ -1,5 +1,6 @@
-from PyQt5.QtWidgets import QApplication, QMainWindow
-from windows import EnterExpense, HoldingType, MenuBP, MoneyDistribution, SummaryExp
+from PyQt5.QtCore import Qt
+from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget
+from windows import EnterExpense, HoldingType, MenuBP, MoneyDistribution, SummaryExp, TransferMoney
 import sys
         
 
@@ -65,7 +66,8 @@ class MoneyDistWindow(QMainWindow):
         super().__init__()
         self.window = MoneyDistribution(main_window = self, 
                                         menu=menu, 
-                                        htype_wind=HoldingWindow())
+                                        htype_wind=HoldingWindow(),
+                                        trasnfer_wind=TransferWindow())
         self.window.setupUi()
     
     def update_balances(self):
@@ -75,10 +77,18 @@ class MoneyDistWindow(QMainWindow):
         self.window.refresh()
 
 
-
 class HoldingWindow(QMainWindow, HoldingType):
     """
     Window designed to add a new holding type
+    """
+
+    def __init__(self):
+        super().__init__()
+        self.setupUi(self)
+
+
+class TransferWindow(QMainWindow, TransferMoney):
+    """
     """
 
     def __init__(self):
