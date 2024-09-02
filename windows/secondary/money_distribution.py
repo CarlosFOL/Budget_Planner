@@ -46,7 +46,7 @@ class MoneyDistribution(SecondaryWindow):
                                 position=(10, 140),
                                 dimensions=bsize,
                                 mssg="Add Holding")
-        self.add_htype.clicked.connect(self._show_htype_wind)
+        self.add_htype.clicked.connect(lambda: self._show_window("A"))
         self.rm_htype = Button(cwidget=self.centralwidget,
                                position=(200, 140),
                                dimensions=bsize,
@@ -56,23 +56,23 @@ class MoneyDistribution(SecondaryWindow):
                                position=(500, 140),
                                dimensions=(50, 50),
                                mssg='⇅')
-        self.transfer.clicked.connect(self._show_transfer_wind)
+        self.transfer.clicked.connect(lambda: self._show_window("T"))
         self.refresh()
         self.main_window.setCentralWidget(self.centralwidget)
     
 
-    def _show_htype_wind(self):
+    def _show_window(self, window: str):
         """
-        Display the window that allows you to register
-        a new holding type.
+        Depending to the name of the window, it displays a window for:
+        * (A): Add a new holding type.
+        * (T): Tranfer money between the registered holding types.
         """
-        self.htype_wind.show()
-    
-
-    def _show_transfer_wind(self):
-        """
-        """
-        self.transfer_wind.show()
+        if window == "A":
+            self.htype_wind.refresh()
+            self.htype_wind.show()
+        elif window == "T":
+            self.transfer_wind.refresh()
+            self.transfer_wind.show()
 
 
     def refresh(self):
@@ -187,6 +187,13 @@ class HoldingType:
         MainWindow.setCentralWidget(self.centralwidget)
 
 
+    def refresh(self):
+        """
+        Clear the fields in order to add the information of the new holding type.
+        """
+        self.htype_cb.setCurrentIndex(-1)
+
+
     def _show_more_fields(self):
         """
         According to the holding type selected, it will display
@@ -205,6 +212,9 @@ class HoldingType:
             self.input_amount.move(10, self.input_inst.y())
             self._toggle_visibility(self.institution, self.input_inst, hide=True)
             self._toggle_visibility(self.amount, self.input_amount, self.save_htype)
+        elif option == '':
+            self._toggle_visibility(self.institution, self.input_inst, 
+                                    self.amount, self.input_amount, self.save_htype, hide=True)
         self.save_htype.move(10, self.input_amount.y() + 80)
 
 
@@ -303,6 +313,14 @@ class TransferMoney:
                                mssg="TRANSFER")
         self.transfer.clicked.connect(self._perform_the_transfer)
         MainWindow.setCentralWidget(self.centralwidget)
+
+
+    def refresh(self):
+        """
+        Clear the fields to perform a new transaction between the 
+        registeres holding types.
+        """
+        self.or_htypes.setCurrentIndex(-1)
 
 
     def _data_management(self):
