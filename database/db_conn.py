@@ -1,11 +1,7 @@
-import subprocess
-import json
 import os
 import psycopg2
 from psycopg2.errors import CheckViolation, ProgrammingError, UniqueViolation
 from typing import List
-import os
-os.chdir("..")
 from widgets import Message_Box
 
 
@@ -16,23 +12,17 @@ class DB_conn:
 
     def __init__(self, dbname: str):
         self.dbname = dbname
-        self.host = os.getenv("PSQL_HOST")
-        self.port = os.getenv("PSQL_PORT")
         self._get_credentials()
 
     def _get_credentials(self):
         """
-        Obtain the user and password to connec to the 
+        Get the credentials to connect to the 
         budget planner database
         """
-        creds_path = os.getenv("PSQL_CREDS")
-        data = subprocess.run(["gpg", "--decrypt", creds_path], 
-                              capture_output=True,
-                              text = True, 
-                              check = True)
-        credentials = json.loads(data.stdout)
-        self.user = credentials["user"]
-        self.passw = credentials["pass"]
+        self.user = os.getenv("PSQL_USER")
+        self.passw = os.getenv("PSQL_PASS")
+        self.host = os.getenv("PSQL_HOST") #"/var/run/postgresql"
+        self.port = os.getenv("PSQL_PORT")
 
     def execute(self, commands: str | List[str]) -> list | None:
         """

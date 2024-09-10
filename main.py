@@ -1,5 +1,4 @@
-from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget
+from PyQt5.QtWidgets import QApplication, QMainWindow
 from windows import EnterExpense, HoldingType, MenuBP, MoneyDistribution, SummaryExp, TransferMoney
 import sys
         
