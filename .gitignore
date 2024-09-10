@@ -3,5 +3,3 @@ PyQt5/
 venv_bp/
 **__pycache__/
 **.txt
-startup_scripts/
-logs/
