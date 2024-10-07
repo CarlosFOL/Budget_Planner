@@ -1,3 +1,4 @@
+#!venv_bp/bin/python3
 from PyQt5.QtWidgets import QApplication, QMainWindow
 from windows import EnterExpense, HoldingType, MenuBP, MoneyDistribution, SummaryExp, TransferMoney
 import sys
