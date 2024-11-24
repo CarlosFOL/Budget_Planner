@@ -24,7 +24,7 @@ class MoneyDistribution(SecondaryWindow):
 
     def setupUi(self):
         # Set the database connection
-        self.db_conn = DB_conn(dbname="budgetplanner")
+        self.db_conn = DB_conn(dbname="budget_planner")
 
         self.main_window.setGeometry(500, 200, 750, 700)
         self.centralwidget = QWidget(self.main_window)
@@ -150,7 +150,7 @@ class HoldingType:
 
     def setupUi(self, MainWindow: QMainWindow):
         # Set the db connection
-        self.db_conn = DB_conn(dbname="budgetplanner")
+        self.db_conn = DB_conn(dbname="budget_planner")
 
         MainWindow.setGeometry(600, 200, 500, 450)
         self.centralwidget = QWidget(MainWindow)
@@ -242,7 +242,7 @@ class HoldingType:
             datetime.now().date().strftime("%Y-%m-%d")
             )
         self.db_conn.execute("INSERT INTO financial_holdings (holding_type, institution, amount, last_updated) \
-                              VALUES (%s, %s, %s, %s)"%inputs)
+                              VALUES ('%s', '%s', %s, '%s')"%inputs)
     
 
     def _clear_fields(self):
@@ -264,7 +264,7 @@ class TransferMoney:
 
     def setupUi(self, MainWindow: QMainWindow):
         # Set the db connection
-        self.db_conn = DB_conn(dbname="budgetplanner")
+        self.db_conn = DB_conn(dbname="budget_planner")
 
         MainWindow.setGeometry(600, 200, 500, 480)
         self.centralwidget = QWidget(MainWindow)

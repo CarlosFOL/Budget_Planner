@@ -74,7 +74,7 @@ class DB_conn:
         
 
 if __name__ == "__main__":
-    conn = DB_conn(dbname="budgetplanner")
+    conn = DB_conn(dbname="budget_planner")
     try:
         conn.start()
     except psycopg2.OperationalError:

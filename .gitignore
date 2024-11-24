@@ -1,5 +1,4 @@
-analysis/
-PyQt5/
 venv_bp/
 **__pycache__/
 **.txt
+bp_backup.sql

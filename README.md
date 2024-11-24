@@ -21,3 +21,4 @@ Also, you are able to add or remove a payment method or a specific institution i
 
 
 3. Expense summary: It displays the data associated with the monthly expenses in tabular form.
+<img src="images/expense.png" width=1500 height=200> <br>

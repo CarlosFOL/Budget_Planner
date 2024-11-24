@@ -15,7 +15,7 @@ class MenuBP(object):
         # Welcome message
         self.w_mssg = Field(cwidget=self.centralwidget, position=(20, 20),
                             texto="Welcome to your Expense Manager",
-                            dimensions=(545, 38), pointsize=25,
+                            dimensions=(580, 50), pointsize=25,
                             bold=True, weight=75)
         # Buttons for the actions that can be one through the budget planner
         size = (231, 81)

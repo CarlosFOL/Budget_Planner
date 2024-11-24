@@ -15,7 +15,7 @@ class EnterExpense(SecondaryWindow):
 
     def setupUi(self):
         # Set the database connection
-        self.db_conn = DB_conn(dbname="budgetplanner")
+        self.db_conn = DB_conn(dbname="budget_planner")
 
         self.main_window.setGeometry(500, 200, 750, 700)
         self.centralwidget = QWidget(self.main_window)
@@ -40,7 +40,7 @@ class EnterExpense(SecondaryWindow):
                                       position=(10, 180))
         self.options_mtype.currentIndexChanged.connect(self._update_categories)
 
-        # It shows the categories of incomes and expenses that there are.
+        # It shows the categories either of incomes or expenses that are available.
         self.cat_mov = Field(cwidget=self.centralwidget, 
                               position=(10, 260),
                               dimensions=(145, 23),
