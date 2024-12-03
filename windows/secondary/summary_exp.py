@@ -87,7 +87,7 @@ class SummaryExp(SecondaryWindow):
         categories = ["Alojamiento", "Servicios", "Comida", "Telefonia", 
                       "Transporte", "Universidad","Ocio", "Gym", "Otros"]
         df_expenses = pd.DataFrame(0, index=categories, columns=np.arange(1, 13))
-        df_expenses += data 
+        df_expenses = df_expenses.add(data, fill_value=0) 
         # In case of nan values:
         df_expenses = df_expenses.fillna(0)
         # Add the total amount
@@ -97,16 +97,18 @@ class SummaryExp(SecondaryWindow):
         return df_expenses
 
 
-    def _qualified_records(self, year: int) -> List[Tuple[str, str, str]]:
+    def _qualified_records(self, year: int) -> List[Tuple[str, str, float]]:
         """
         Get those movements that belong to the year selected 
         """
         sql_cmd = f"""
         SELECT EXTRACT(MONTH FROM date), category, amount
         FROM movements
-        WHERE EXTRACT(YEAR FROM date) = {year}   
+        WHERE EXTRACT(YEAR FROM date) = {year} AND  type = 'Expense'
         """
-        return self.db_conn.execute(commands=sql_cmd)
+        records = [(record[0], record[1], float(record[2])) 
+                    for record in self.db_conn.execute(commands=sql_cmd)]
+        return records
     
 
     def _build_table(self):
@@ -120,7 +122,7 @@ class SummaryExp(SecondaryWindow):
                                 columns = ["Month", "Category", "Amount"])
             # Specify a format
             data = data.pivot_table(index = "Category", columns="Month",
-                                        values="Amount", aggfunc="sum")
+                                        values="Amount", aggfunc="sum", fill_value=0)                                                                                
             # Fill in the table with the missing months
             df_expenses = self._fillin_table(data)
             return df_expenses
