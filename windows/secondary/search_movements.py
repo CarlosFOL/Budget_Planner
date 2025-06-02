@@ -2,6 +2,7 @@ from database import DB_conn
 from datetime import datetime
 from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QTableWidget, QTableWidgetItem, QDateEdit, QHeaderView
 from PyQt5.QtCore import QDate
+from PyQt5.QtGui import QColor
 from .secondary_wind import SecondaryWindow
 import sys
 from widgets import Button, ComboBox, Field, InputLine, Message_Box
@@ -20,7 +21,7 @@ class SearchMovements(SecondaryWindow):
         # Configure window
         self.main_window.setGeometry(500, 200, 900, 700)
         self.main_window.setWindowTitle("Search Movements")
-        self.main_window.setStyleSheet("background-color: #f5f5f7;")
+        # Apply the green and gray color scheme
         
         self.centralwidget = QWidget(self.main_window)
         
@@ -39,13 +40,13 @@ class SearchMovements(SecondaryWindow):
         self.back_button.clicked.connect(self._back_menu)
         self.back_button.setStyleSheet("""
             QPushButton {
-                background-color: #3498db;
+                background-color: #2e7d32;
                 color: white;
                 border-radius: 25px;
                 font-weight: bold;
             }
             QPushButton:hover {
-                background-color: #2980b9;
+                background-color: #4caf50;
             }
         """)
         
@@ -107,14 +108,14 @@ class SearchMovements(SecondaryWindow):
         self.search_button.clicked.connect(self._perform_search)
         self.search_button.setStyleSheet("""
             QPushButton {
-                background-color: #27ae60;
+                background-color: #2e7d32;
                 color: white;
                 border-radius: 8px;
                 font-weight: bold;
                 padding: 10px;
             }
             QPushButton:hover {
-                background-color: #2ecc71;
+                background-color: #4caf50;
             }
         """)
         
@@ -126,14 +127,14 @@ class SearchMovements(SecondaryWindow):
         self.clear_button.clicked.connect(self.refresh)
         self.clear_button.setStyleSheet("""
             QPushButton {
-                background-color: #e74c3c;
+                background-color: #757575;
                 color: white;
                 border-radius: 8px;
                 font-weight: bold;
                 padding: 10px;
             }
             QPushButton:hover {
-                background-color: #c0392b;
+                background-color: #616161;
             }
         """)
         
@@ -158,10 +159,10 @@ class SearchMovements(SecondaryWindow):
                 border: 1px solid #ddd;
             }
             QHeaderView::section {
-                background-color: #3498db;
+                background-color: #2e7d32;
                 color: white;
                 padding: 5px;
-                border: 1px solid #2980b9;
+                border: 1px solid #1b5e20;
                 font-weight: bold;
             }
             QTableWidget::item {

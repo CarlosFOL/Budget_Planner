@@ -23,27 +23,56 @@ class SummaryExp(SecondaryWindow):
         self.db_conn = DB_conn(dbname="budget_planner")
 
         self.main_window.setGeometry(300, 200, 1400, 620)
+        # Apply the green and gray color scheme
+        self.main_window.setStyleSheet(f"background-color: #e0e0e0;")  # Light gray background
         self.centralwidget = QWidget(self.main_window)
         # It tells you what you are seeing in this window
         self.indication = Field(cwidget=self.centralwidget, position=(10, 5),
                                 texto="See how much you spend over the period",
-                                dimensions=(550, 40), pointsize=20, 
+                                dimensions=(580, 80), pointsize=20, 
                                 bold=True, weight=75)
+        self.indication.setStyleSheet("color: #2e7d32; padding: 5px;")
         # Back button to the menu
         self.back_button = Button(cwidget=self.centralwidget, 
                              position=(10, 60),
                              dimensions=(50, 50),                
                              mssg="⟵")
         self.back_button.clicked.connect(self._back_menu)
+        self.back_button.setStyleSheet("""
+            QPushButton {
+                background-color: #2e7d32;
+                color: white;
+                border-radius: 25px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #4caf50;
+            }
+        """)
         # To choose the year
         self.year_f = Field(cwidget=self.centralwidget,
                             position=(10, 140),
                             texto="Year",
                             dimensions=(145, 23))
+        self.year_f.setStyleSheet("color: #2e7d32; font-weight: bold;")
         self._set_years()
         self.table = QTableView(self.main_window)
         self.table.move(50, 250)
-        self.table.setGeometry(50, 250, 1280, 328)
+        self.table.setGeometry(50, 250, 1295, 335)
+        self.table.setStyleSheet("""
+            QTableView {
+                background-color: white;
+                alternate-background-color: #f9f9f9;
+                border: 1px solid #ddd;
+            }
+            QHeaderView::section {
+                background-color: #2e7d32;
+                color: white;
+                padding: 5px;
+                border: 1px solid #1b5e20;
+                font-weight: bold;
+            }
+        """)
         self.table.hide()
         self.main_window.setCentralWidget(self.centralwidget)
 
@@ -69,16 +98,6 @@ class SummaryExp(SecondaryWindow):
         self.years_cb.currentIndexChanged.connect(self._show_table)
 
 
-    def _total_amount(self, exp_table: pd.DataFrame) -> pd.DataFrame:
-        """
-        Create the record that represents the total amount of
-        expenses for each month.
-        """
-        record = pd.DataFrame(exp_table.sum(axis = 0), 
-                              columns=["Total"]).T
-        return record
-
-
     def _fillin_table(self, data: pd.DataFrame) -> pd.DataFrame:
         """
         Check which months are missing from expenses table 
@@ -91,10 +110,12 @@ class SummaryExp(SecondaryWindow):
         # In case of nan values:
         df_expenses = df_expenses.fillna(0)
         # Add the total amount
-        df_expenses = pd.concat([df_expenses, self._total_amount(df_expenses)], axis=0)
+        total_amount = pd.DataFrame(df_expenses.sum(axis = 0),
+                                    columns=["Total"]).T 
+        df_expenses = pd.concat([df_expenses, total_amount], axis=0)
         # Aesthetic feature: Month's names
         df_expenses.columns = [month_name[i] for i in range(1, 13)]
-        return df_expenses
+        return round(df_expenses, 2)
 
 
     def _qualified_records(self, year: int) -> List[Tuple[str, str, float]]:
@@ -107,7 +128,7 @@ class SummaryExp(SecondaryWindow):
         WHERE EXTRACT(YEAR FROM date) = {year} AND  type = 'Expense'
         """
         records = [(record[0], record[1], float(record[2])) 
-                    for record in self.db_conn.execute(commands=sql_cmd)]
+                    for record in self.db_conn.execute(query=sql_cmd)]
         return records
     
 

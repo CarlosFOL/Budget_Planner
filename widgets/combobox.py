@@ -7,10 +7,11 @@ class ComboBox(QComboBox):
     in a certain field.
     """
 
-    def __init__(self, cwidget: QWidget, position: tuple, options: tuple = None):
+    def __init__(self, cwidget: QWidget, position: tuple, options: tuple = None, dimensions: tuple = None):
         super().__init__(cwidget)
         self.options = options
         self.position = position
+        self.dimensions = dimensions if dimensions else (141, 41)  # Default dimensions if not provided
         self._setUp()
         # To ensure that there is no option selected in the combobox
         self.setCurrentIndex(-1)
@@ -19,7 +20,7 @@ class ComboBox(QComboBox):
         """
         Configure the main features for the combo box object
         """
-        self.setGeometry(*self.position, 141, 41)
+        self.setGeometry(*self.position, *self.dimensions)
         font = QtGui.QFont()
         font.setPointSize(15)
         self.setFont(font)   

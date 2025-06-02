@@ -4,6 +4,7 @@ from functools import reduce
 from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget
 from widgets import Button, ComboBox, Field, InputLine, Message_Box
 from .secondary_wind import SecondaryWindow
+from .update_holding import UpdateHolding
 import sys
 
 
@@ -16,10 +17,11 @@ class MoneyDistribution(SecondaryWindow):
 
 
     def __init__(self, main_window: QMainWindow, menu: QMainWindow, 
-                 htype_wind: QMainWindow, trasnfer_wind: QMainWindow):
+                 htype_wind: QMainWindow, trasnfer_wind: QMainWindow, update_wind: QMainWindow = None):
         super().__init__(main_window, menu)
         self.htype_wind = htype_wind
         self.transfer_wind = trasnfer_wind
+        self.update_wind = update_wind
 
 
     def setupUi(self):
@@ -27,36 +29,82 @@ class MoneyDistribution(SecondaryWindow):
         self.db_conn = DB_conn(dbname="budget_planner")
 
         self.main_window.setGeometry(500, 200, 750, 700)
+        # Apply the green and gray color scheme
+        self.main_window.setStyleSheet(f"background-color: #e0e0e0;")  # Light gray background
         self.centralwidget = QWidget(self.main_window)
-        # Get the htypes that were added to the financial holding table
-        # It tells you what you are seeing in this window
+        
+        # Title and header
         self.indication = Field(cwidget=self.centralwidget, position=(10, 20),
-                                texto="Have a look at how much money you have", 
-                                dimensions=(590, 32), pointsize=20, 
+                                texto="Financial Holdings Distribution", 
+                                dimensions=(590, 45), pointsize=20, 
                                 bold=True, weight=75)
-        # To return to the menu
+        self.indication.setStyleSheet("color: #2e7d32; padding: 5px;")
+        
+        # Navigation buttons
         self.back_button = Button(cwidget=self.centralwidget, 
                              position=(10, 65),
                              dimensions=(50, 50),
                              mssg="⟵")
         self.back_button.clicked.connect(self._back_menu)
-        # To add and remove and holding type
+        self.back_button.setStyleSheet("""
+            QPushButton {
+                background-color: #2e7d32;
+                color: white;
+                border-radius: 25px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #4caf50;
+            }
+        """)
+        
+        # Action buttons
         bsize = (175, 50) # Button's size
+        button_style = """
+            QPushButton {
+                background-color: #2e7d32;
+                color: white;
+                border-radius: 8px;
+                font-weight: bold;
+                padding: 8px;
+            }
+            QPushButton:hover {
+                background-color: #4caf50;
+            }
+        """
+        
         self.add_htype = Button(cwidget=self.centralwidget,
                                 position=(10, 140),
                                 dimensions=bsize,
                                 mssg="Add Holding")
         self.add_htype.clicked.connect(lambda: self._show_window("A"))
+        self.add_htype.setStyleSheet(button_style)
+        
         self.rm_htype = Button(cwidget=self.centralwidget,
                                position=(200, 140),
                                dimensions=bsize,
                                mssg="Remove Holding")
-        # To transfer money between the holding types
+        self.rm_htype.setStyleSheet(button_style)
+        
+        # Update specific holding button
+        self.update_specific = Button(cwidget=self.centralwidget,
+                               position=(480, 140),
+                               dimensions=(175, 50),
+                               mssg="Update")
+        self.update_specific.clicked.connect(lambda: self._show_window("U"))
+        self.update_specific.setStyleSheet(button_style)
+        
         self.transfer = Button(cwidget=self.centralwidget,
-                               position=(500, 140),
-                               dimensions=(50, 50),
+                               position=(580, 140),
+                               dimensions=(75, 50),
                                mssg='⇅')
         self.transfer.clicked.connect(lambda: self._show_window("T"))
+        self.transfer.setStyleSheet(button_style)
+        
+        # Manual update button - removed as we now have the Update Specific button
+        
+        # Initialize input fields for manual updates
+        self.amount_inputs = []
         self.refresh()
         self.main_window.setCentralWidget(self.centralwidget)
     
@@ -66,13 +114,21 @@ class MoneyDistribution(SecondaryWindow):
         Depending to the name of the window, it displays a window for:
         * (A): Add a new holding type.
         * (T): Tranfer money between the registered holding types.
+        * (U): Update a specific financial holding amount.
         """
         if window == "A":
-            self.htype_wind.refresh()
             self.htype_wind.show()
         elif window == "T":
-            self.transfer_wind.refresh()
             self.transfer_wind.show()
+        elif window == "U":
+            # Create the update window if it doesn't exist yet
+            if not self.update_wind:
+                self.update_wind = QMainWindow()
+                self.update_ui = UpdateHolding(self.update_wind, self.main_window)
+                self.update_ui.setupUi()
+            # Refresh the update window to ensure data is current
+            self.update_ui.refresh()
+            self.update_wind.show()
 
 
     def refresh(self):
@@ -98,27 +154,102 @@ class MoneyDistribution(SecondaryWindow):
     
     def _create_section(self, htype: str, match_rec: list | tuple, ycoord: int) -> int:
         """
-        Create a section for a particular htype. 
+        Create a section for a particular htype with editable input fields.
         """
         Field(cwidget=self.centralwidget, position=(10, ycoord),
               dimensions=(400, 30), texto=f"<u> {htype} </u>", bold=True, 
               pointsize=18, weight=75)
         sep = 40 # Separator of widgets
+        
         if htype == "Card":
             for m_rec in match_rec:
+                # Institution label
                 Field(cwidget=self.centralwidget, position=(10, ycoord + sep),
-                          dimensions=(300, 50), texto=m_rec[1])
-                InputLine(cwidget=self.centralwidget, position=(10, ycoord + 2*sep), 
-                              texto=f"{str(m_rec[-1])} €", readonly=True)
+                      dimensions=(300, 50), texto=m_rec[1])
+                
+                # Amount input field
+                amount_input = InputLine(cwidget=self.centralwidget, 
+                                        position=(10, ycoord + 2*sep),
+                                        texto=f"{str(m_rec[-1])} €",
+                                        regex=r'^\d{1,4}(\.\d{0,2})?$')
+                self.amount_inputs.append((amount_input, m_rec[0], m_rec[1]))
+                
                 ycoord += 2*sep
         elif htype == "Cash":
-            # If this holding type was registered, then there is only 1 record within
-            # the matching records.
             record = match_rec[0]
-            InputLine(cwidget=self.centralwidget, position=(10, ycoord + sep),
-                      texto=f"{str(record[-1])} €", readonly=True)
+            amount_input = InputLine(cwidget=self.centralwidget, 
+                                    position=(10, ycoord + sep),
+                                    texto=f"{str(record[-1])} €",
+                                    regex=r'^\d{1,4}(\.\d{0,2})?$')
+            self.amount_inputs.append((amount_input, record[0], record[1]))
             ycoord += sep
+            
         return ycoord + 2*sep
+
+    def _update_amounts(self):
+        """
+        Update the amounts in the database based on user input.
+        """
+        update_success = True
+        error_message = ""
+        
+        for amount_input, htype, institution in self.amount_inputs:
+            try:
+                # Get the amount text and convert to float
+                amount_text = amount_input.text().replace('€', '').strip()
+                
+                # Validate input
+                if not amount_text:
+                    Message_Box(title="Input Error",
+                               text=f"Please enter an amount for {institution}",
+                               icon="Warning")
+                    update_success = False
+                    continue
+                    
+                new_amount = float(amount_text)
+                
+                # Check for negative values
+                if new_amount < 0:
+                    Message_Box(title="Input Error",
+                               text=f"Amount for {institution} cannot be negative",
+                               icon="Warning")
+                    update_success = False
+                    continue
+                
+                # Update the database
+                query = "UPDATE financial_holdings \
+                        SET amount = %s \
+                        WHERE holding_type = %s AND institution = %s"
+                
+                result = self.db_conn.execute(query, (new_amount, htype, institution))
+                
+                if result != "Ok":
+                    update_success = False
+                    error_message = f"Failed to update {institution}"
+                    
+            except ValueError:
+                Message_Box(title="Input Error",
+                           text=f"Invalid amount format for {institution}",
+                           icon="Warning")
+                update_success = False
+            except Exception as e:
+                Message_Box(title="Database Error",
+                           text=f"Error updating {institution}: {str(e)}",
+                           icon="Warning")
+                update_success = False
+        
+        # Show success message if all updates were successful
+        if update_success:
+            Message_Box(title="Update Successful",
+                       text="All amounts have been updated successfully",
+                       icon="Information")
+        elif error_message:
+            Message_Box(title="Update Incomplete",
+                       text=error_message,
+                       icon="Warning")
+        
+        # Refresh the display
+        self.refresh()
 
 
     def _get_total_amount(self, records: list | tuple, ycoord):
@@ -153,35 +284,53 @@ class HoldingType:
         self.db_conn = DB_conn(dbname="budget_planner")
 
         MainWindow.setGeometry(600, 200, 500, 450)
+        # Apply the green and gray color scheme
+        MainWindow.setStyleSheet(f"background-color: #e0e0e0;")  # Light gray background
         self.centralwidget = QWidget(MainWindow)
         # It tells you what you are seeing in this window
-        self.indication = Field(cwidget=self.centralwidget, position=(10, 10),
+        self.indication = Field(cwidget=self.centralwidget, position=(50, 20),
                                 texto="Fill in the field of the new holding type",
-                                dimensions=(400, 32),bold=True, weight=75)
+                                dimensions=(400, 32), bold=True, weight=75)
+        self.indication.setStyleSheet("color: #2e7d32; padding: 5px;")
         # Set a htype: cash, card, investment, etc
-        self.htype = Field(cwidget=self.centralwidget, position=(10, 60),
+        self.htype = Field(cwidget=self.centralwidget, position=(50, 80),
                            texto="Holding Type", dimensions=(200, 30))
-        self.htype_cb = ComboBox(cwidget=self.centralwidget, position=(10, 100),
-                                 options=("Cash", "Card"))
+        self.htype.setStyleSheet("color: #2e7d32; font-weight: bold;")
+        self.htype_cb = ComboBox(cwidget=self.centralwidget, position=(50, 120),
+                                  options=("Cash", "Card"), dimensions=(200, 30))
         # The rest of the fields
-        self.institution = Field(cwidget=self.centralwidget, position=(10, 160),
-                                     texto="Institution", dimensions=(200, 30))
-        self.input_inst = InputLine(cwidget=self.centralwidget, position=(10, 200), 
-                                     max_char=9)
-        self.amount = Field(cwidget=self.centralwidget, position=(10, 260),
-                            texto="Amount", dimensions=(200, 30))
-        self.input_amount = InputLine(cwidget=self.centralwidget, position=(10, 300),
-                                      regex=r'^\d{1,4}(\.\d{0,2})?$')
+        self.institution = Field(cwidget=self.centralwidget, position=(50, 180),
+                                      texto="Institution", dimensions=(200, 30))
+        self.institution.setStyleSheet("color: #2e7d32; font-weight: bold;")
+        self.input_inst = InputLine(cwidget=self.centralwidget, position=(50, 220), 
+                                      max_char=9, dimensions=(200, 30))
+        self.amount = Field(cwidget=self.centralwidget, position=(50, 280),
+                             texto="Amount", dimensions=(200, 30))
+        self.amount.setStyleSheet("color: #2e7d32; font-weight: bold;")
+        self.input_amount = InputLine(cwidget=self.centralwidget, position=(50, 320),
+                                       regex=r'^\d{1,4}(\.\d{0,2})?$', dimensions=(200, 30))
         # Save a new holding type
         self.save_htype = Button(cwidget=self.centralwidget,
-                                 position=(10, 380),
-                                 dimensions=(100, 40),
-                                 mssg="Save")
+                                  position=(50, 380),
+                                  dimensions=(200, 40),
+                                  mssg="Save")
         self.save_htype.clicked.connect(self._save_new_htype)
+        self.save_htype.setStyleSheet("""
+            QPushButton {
+                background-color: #2e7d32;
+                color: white;
+                border-radius: 8px;
+                font-weight: bold;
+                padding: 8px;
+            }
+            QPushButton:hover {
+                background-color: #4caf50;
+            }
+        """)
         # Hide them
         self._toggle_visibility(self.institution, self.input_inst, 
-                                self.amount, self.input_amount, 
-                                self.save_htype, hide=True)
+                                 self.amount, self.input_amount, 
+                                 self.save_htype, hide=True)
         # Show the corresponding fields
         self.htype_cb.currentIndexChanged.connect(self._show_more_fields)
         MainWindow.setCentralWidget(self.centralwidget)
@@ -267,51 +416,78 @@ class TransferMoney:
         self.db_conn = DB_conn(dbname="budget_planner")
 
         MainWindow.setGeometry(600, 200, 500, 480)
+        # Apply the green and gray color scheme
+        MainWindow.setStyleSheet(f"background-color: #e0e0e0;")  # Light gray background
         self.centralwidget = QWidget(MainWindow)
 
-        x = 10
+        x = 50  # Increased margin for better alignment
         # To indicate what to do in this window
         self.indication = Field(cwidget=self.centralwidget, 
                                 texto="Let's transfer money.", 
-                                position=(x, 10), 
+                                position=(x, 20), 
                                 dimensions=(400, 32), 
                                 bold=True, 
                                 weight=75)
+        self.indication.setStyleSheet("color: #2e7d32; padding: 5px;")
         # Set the origin
         self.origin = Field(cwidget=self.centralwidget, 
-                            position=(x, 60),
+                            position=(x, 80),
                             texto="<u>ORIGIN</u>",
                             dimensions=(200, 30))
+        self.origin.setStyleSheet("color: #2e7d32; font-weight: bold;")
         self.or_htypes = ComboBox(cwidget=self.centralwidget, 
-                                  position=(x, self.origin.y() + 40))
-        # Set the amount of monet that will be transfered
+                                  position=(x, self.origin.y() + 40),
+                                  dimensions=(200, 30))
+        # Set the amount of money that will be transferred
+        amount_label = Field(cwidget=self.centralwidget,
+                            position=(x, self.or_htypes.y() + 60),
+                            texto="Amount",
+                            dimensions=(200, 30))
+        amount_label.setStyleSheet("color: #2e7d32; font-weight: bold;")
+        
         self.amount = InputLine(cwidget=self.centralwidget, 
                                 position=(x, self.or_htypes.y() + 100),
                                 regex=r'^\d{1,4}(\.\d{0,2})?$', 
-                                dimensions=(141, 41))
+                                dimensions=(200, 40))
         self.currency = Field(cwidget=self.centralwidget, 
-                              position=(self.amount.x() + 120 ,self.amount.y() + 5),
+                              position=(self.amount.x() + 210, self.amount.y() + 5),
                               texto="€", 
-                              dimensions=(200, 30))
+                              dimensions=(30, 30))
+        self.currency.setStyleSheet("color: #2e7d32; font-weight: bold;")
         # Set the destination
         self.dest = Field(cwidget=self.centralwidget, 
-                          position=(x, self.amount.y() + 100),
+                          position=(x, self.amount.y() + 80),
                           texto="<u>DESTINATION</u>", 
                           dimensions=(200, 30))
+        self.dest.setStyleSheet("color: #2e7d32; font-weight: bold;")
         self.dest_htypes = ComboBox(cwidget=self.centralwidget, 
-                                    position=(x, self.dest.y() + 40))
+                                    position=(x, self.dest.y() + 40),
+                                    dimensions=(200, 30))
         # To add aesthetic features
         for y_coord, sign in [(self.or_htypes.y(), 1), (self.dest.y(), -1)]:
-            Field(cwidget=self.centralwidget, position=(60, y_coord + (50 * sign)),
-                  texto='↓', dimensions=(200, 40), 
+            arrow = Field(cwidget=self.centralwidget, position=(x + 80, y_coord + (50 * sign)),
+                  texto='↓', dimensions=(40, 40), 
                   bold=True, weight=75, pointsize=40)
+            arrow.setStyleSheet("color: #2e7d32;")
         self._data_management()
         # Save the transfer and modify the balances of the htypes implied. 
         self.transfer = Button(cwidget=self.centralwidget, 
                                position=(x, self.dest_htypes.y() + 70),
-                               dimensions=(120, 40), 
-                               mssg="TRANSFER")
+                               dimensions=(200, 40), 
+                               mssg="Transfer")
         self.transfer.clicked.connect(self._perform_the_transfer)
+        self.transfer.setStyleSheet("""
+            QPushButton {
+                background-color: #2e7d32;
+                color: white;
+                border-radius: 8px;
+                font-weight: bold;
+                padding: 8px;
+            }
+            QPushButton:hover {
+                background-color: #4caf50;
+            }
+        """)
         MainWindow.setCentralWidget(self.centralwidget)
 
 
@@ -337,11 +513,13 @@ class TransferMoney:
             self.or_htypes.currentIndexChanged.connect(lambda: self._destination_options(htypes))
             # Create the institution combobox for both origin and destination:
             self.inst_cb_or = ComboBox(cwidget=self.centralwidget, 
-                                       position=(self.or_htypes.x() + 150, self.or_htypes.y()),
-                                       options=inst)
+                                       position=(self.or_htypes.x() + 220, self.or_htypes.y()),
+                                       options=inst,
+                                       dimensions=(200, 30))
             self.inst_cb_des = ComboBox(cwidget=self.centralwidget,
-                                        position=(self.dest_htypes.x() + 150, self.dest_htypes.y()),
-                                        options=inst)
+                                        position=(self.dest_htypes.x() + 220, self.dest_htypes.y()),
+                                        options=inst,
+                                        dimensions=(200, 30))
             # Hide them (Only apply when it's selected the "Card" htype)
             self.inst_cb_or.hide()
             self.inst_cb_des.hide()

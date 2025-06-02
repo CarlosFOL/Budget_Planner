@@ -18,23 +18,38 @@ class EnterExpense(SecondaryWindow):
         self.db_conn = DB_conn(dbname="budget_planner")
 
         self.main_window.setGeometry(500, 200, 750, 700)
+        # Apply the green and gray color scheme
+        self.main_window.setStyleSheet(f"background-color: #e0e0e0;")  # Light gray background
         self.centralwidget = QWidget(self.main_window)
         # It tells you what you can do on this window
         self.indication = Field(cwidget=self.centralwidget, position=(10, 5),
                                 texto="Fill in the fields of the movement",
-                                dimensions=(421, 32), pointsize=20,
+                                dimensions=(480,75), pointsize=20,
                                 bold=True, weight=75)
+        self.indication.setStyleSheet("color: #2e7d32; padding: 5px;")
         # Back button to the menu
         self.back_button = Button(cwidget=self.centralwidget, 
                              position=(10, 60),                
                              dimensions=(50, 50),
                              mssg="⟵")
         self.back_button.clicked.connect(self._back_menu)
+        self.back_button.setStyleSheet("""
+            QPushButton {
+                background-color: #2e7d32;
+                color: white;
+                border-radius: 25px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #4caf50;
+            }
+        """)
         # To select the movement type
         self.mov_type = Field(cwidget=self.centralwidget, 
                               position=(10, 140),
                               dimensions=(145, 23),
                               texto="Type")
+        self.mov_type.setStyleSheet("color: #2e7d32; font-weight: bold;")
         self.options_mtype = ComboBox(cwidget=self.centralwidget, 
                                       options=("Income", "Expense"),
                                       position=(10, 180))
@@ -45,6 +60,7 @@ class EnterExpense(SecondaryWindow):
                               position=(10, 260),
                               dimensions=(145, 23),
                               texto="Category")
+        self.cat_mov.setStyleSheet("color: #2e7d32; font-weight: bold;")
         self.categories = ComboBox(cwidget=self.centralwidget,
                                    position=(10, 300))
         
@@ -53,6 +69,7 @@ class EnterExpense(SecondaryWindow):
                               position=(10, 380),
                               dimensions=(145, 23),
                               texto="Description")
+        self.mov_des.setStyleSheet("color: #2e7d32; font-weight: bold;")
         # Space to specify a brief description of the movement
         self.description = InputLine(cwidget=self.centralwidget,
                                      position=(10, 420),
@@ -63,6 +80,7 @@ class EnterExpense(SecondaryWindow):
                               position=(10, 500),
                               dimensions=(145, 23),
                               texto="Amount (€)")
+        self.amount_mov.setStyleSheet("color: #2e7d32; font-weight: bold;")
         # The amount of the movement
         self.amount = InputLine(cwidget=self.centralwidget,
                                 position=(10, 540),
@@ -75,8 +93,20 @@ class EnterExpense(SecondaryWindow):
         self.send_mv = Button(cwidget=self.centralwidget,
                               position=(10, 615),
                               dimensions=(200, 41),
-                              mssg="Enviar")
+                              mssg="Send")
         self.send_mv.clicked.connect(self._insert_movement)
+        self.send_mv.setStyleSheet("""
+            QPushButton {
+                background-color: #2e7d32;
+                color: white;
+                border-radius: 8px;
+                font-weight: bold;
+                padding: 8px;
+            }
+            QPushButton:hover {
+                background-color: #4caf50;
+            }
+        """)
         
         self.main_window.setCentralWidget(self.centralwidget)
 

@@ -1,6 +1,7 @@
 #!/home/carlosfol/Desktop/Git_Projects/Budget_Planner/venv_bp/bin/python3
 from PyQt5.QtWidgets import QApplication, QMainWindow
-from windows import MenuBP, EnterExpense, MoneyDistribution, SearchMovements, SummaryExp, TransferMoney
+from windows import MenuBP, EnterExpense, HoldingType, MoneyDistribution, SearchMovements, SummaryExp, TransferMoney
+
 import sys
         
 
@@ -111,7 +112,8 @@ class MoneyDistWindow(QMainWindow):
         self.window = MoneyDistribution(main_window = self, 
                                         menu=menu, 
                                         htype_wind=HoldingWindow(),
-                                        trasnfer_wind=TransferWindow())
+                                        trasnfer_wind=TransferWindow(),
+                                        update_wind=None)  # Will be created on demand
         self.window.setupUi()
     
     def update_balances(self):
