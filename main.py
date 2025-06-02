@@ -1,13 +1,26 @@
-#!venv_bp/bin/python3
+#!/home/carlosfol/Desktop/Git_Projects/Budget_Planner/venv_bp/bin/python3
 from PyQt5.QtWidgets import QApplication, QMainWindow
-from windows import EnterExpense, HoldingType, MenuBP, MoneyDistribution, SummaryExp, TransferMoney
+from windows import MenuBP, EnterExpense, MoneyDistribution, SearchMovements, SummaryExp, TransferMoney
 import sys
         
-
 
 class MainWindow_BP(MenuBP, QMainWindow):
     """
     Main Window of the Budget Planner GUI
+
+    Attributes:
+        expense_wind (ExpenseWindow): 
+            The window for entering expenses
+        money_wind (MoneyDistWindow): 
+            The window for managing money distributions
+        summ_wind (SummaryWindow): 
+            The window for summarizing expenses
+        search_wind (SearchWindow): 
+            The window for searching movements
+    
+    Methods:
+        show_window(wind: str): 
+            It shows a window according to the option selected
     """
 
     def __init__(self):
@@ -16,13 +29,21 @@ class MainWindow_BP(MenuBP, QMainWindow):
         self.expense_wind = ExpenseWindow(menu=self)
         self.money_wind = MoneyDistWindow(menu=self)
         self.summ_wind = SummaryWindow(menu=self)
+        self.search_wind = SearchWindow(menu=self)
+        
+        # Connect buttons to their respective windows
         self.movement.clicked.connect(lambda: self.show_window(wind='E'))
         self.money_dist.clicked.connect(lambda: self.show_window(wind='M'))
         self.exp_summary.clicked.connect(lambda: self.show_window(wind='S'))
+        self.search_btn.clicked.connect(lambda: self.show_window(wind='F'))
 
     def show_window(self, wind: str):
         """
-        It shows a windows according to the option selected
+        It shows a window according to the option selected
+
+        Args:
+            wind (str): 
+                The option selected
         """
         self.hide()
         if wind == 'E':
@@ -34,6 +55,9 @@ class MainWindow_BP(MenuBP, QMainWindow):
         elif wind == 'S':
             self.summ_wind.clear_fields()
             self.summ_wind.show()
+        elif wind == 'F':
+            self.search_wind.clear_fields()
+            self.search_wind.show()
 
 
 
@@ -41,6 +65,16 @@ class ExpenseWindow(QMainWindow):
     """
     Window that shows the fields that have to be filled in to 
     record a new expense.
+
+    Attributes:
+        menu (QMainWindow): 
+            The main window
+        window (EnterExpense): 
+            The window for entering expenses
+
+    Methods:
+        clear_fields(): 
+            Clear all the fields once this window is reopened
     """
 
     def __init__(self, menu: QMainWindow):
@@ -60,6 +94,16 @@ class MoneyDistWindow(QMainWindow):
     """
     Window that stores the amount of money that you have
     in the different holding types that you recorded.  
+
+    Attributes:
+        menu (QMainWindow): 
+            The main window
+        window (MoneyDistribution): 
+            The window for managing money distributions
+
+    Methods:
+        update_balances(): 
+            It updates the balances of the htypes once this window is open
     """
 
     def __init__(self, menu: QMainWindow):
@@ -80,6 +124,12 @@ class MoneyDistWindow(QMainWindow):
 class HoldingWindow(QMainWindow, HoldingType):
     """
     Window designed to add a new holding type
+
+    Attributes:
+        menu (QMainWindow): 
+            The main window
+        window (HoldingType): 
+            The window for adding a new holding type
     """
 
     def __init__(self):
@@ -89,6 +139,13 @@ class HoldingWindow(QMainWindow, HoldingType):
 
 class TransferWindow(QMainWindow, TransferMoney):
     """
+    Window designed to transfer money from one holding type to another
+
+    Attributes:
+        menu (QMainWindow): 
+            The main window
+        window (TransferMoney): 
+            The window for transferring money between holding types
     """
 
     def __init__(self):
@@ -101,6 +158,16 @@ class SummaryWindow(QMainWindow):
     """
     Window responsible of getting the expenses performed during
     a particular season and showing in a tabular way.
+    
+    Attributes:
+        menu (QMainWindow): 
+            The main window
+        window (SummaryExp): 
+            The window for summarizing expenses
+
+    Methods:
+        clear_fields(): 
+            Only show the season ComboBox with the default value ('') settled.
     """
 
     def __init__(self, menu: QMainWindow):
@@ -117,6 +184,34 @@ class SummaryWindow(QMainWindow):
         """
         self.window.refresh()
         
+
+
+class SearchWindow(QMainWindow):
+    """
+    Window that allows searching for movements based on description,
+    date range, or other criteria.
+
+    Attributes:
+        menu (QMainWindow): 
+            The main window
+        window (SearchMovements): 
+            The window for searching movements
+
+    Methods:
+        clear_fields(): 
+            Clear all the search fields when this window is reopened
+    """
+
+    def __init__(self, menu: QMainWindow):
+        super().__init__()
+        self.window = SearchMovements(main_window=self, menu=menu)
+        self.window.setupUi()
+    
+    def clear_fields(self):
+        """
+        Clear all the search fields when this window is reopened
+        """
+        self.window.refresh()
 
 
 if __name__ == "__main__":
